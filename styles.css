@@ -36,6 +36,7 @@ main {
     margin: 1rem;
     position: relative;
     overflow: hidden;
+/*TODO: Check why a min height prevents the node from being centered*/
 }
 
 #controls {
@@ -70,7 +71,7 @@ button:hover {
     border: 1px solid #555;
     border-radius: 5px;
     padding: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     z-index: 1000;
     transition: opacity 0.3s, transform 0.3s;
     display: flex;
@@ -79,6 +80,7 @@ button:hover {
 }
 
 .node-menu.hidden {
+    display: none;
     opacity: 0;
     transform: scale(0.95);
     pointer-events: none;
@@ -126,4 +128,34 @@ button:hover {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.notification {
+    background-color: #333333;
+    border-left: 4px solid #007bff;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    color: #ffffff;
+    font-size: 16px;
+    margin-bottom: 10px;
+    max-width: 300px;
+    opacity: 0;
+    padding: 15px;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.notification.show {
+    opacity: 1;
+}
+
+.notification.success {
+    border-left-color: #28a745;
+}
+
+.notification.error {
+    border-left-color: #dc3545;
+}
+
+.notification.warning {
+    border-left-color: #ffc107;
 }

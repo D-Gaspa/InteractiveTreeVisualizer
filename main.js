@@ -2,6 +2,7 @@ let selectedNode = null;
 let highlightColors = ['#1AD1B2', '#EA6C6C', '#2175C4'];
 let treeData = null;
 
+// <------------------------Initialization------------------------>
 document.addEventListener('DOMContentLoaded', () => {
     loadState();
     initializeTree();
@@ -96,18 +97,6 @@ function setupNodeMenu() {
         console.log('Add child functionality to be implemented');
     });
 
-    deleteNodeBtn.addEventListener('click', () => {
-        if (selectedNode && selectedNode.parentNode.childNodes.length > 1) {
-            const nodeId = selectedNode.dataset.id;
-            removeNodeFromTree(treeData, nodeId);
-            selectedNode.remove();
-            hideNodeMenu();
-            saveState();
-        } else {
-            console.log('Cannot delete root node');
-        }
-    });
-
     document.querySelectorAll('.highlight-btn').forEach((btn, index) => {
         btn.addEventListener('click', () => {
             if (selectedNode) {
@@ -116,6 +105,9 @@ function setupNodeMenu() {
                 if (node) {
                     node.highlight = {type: 'global', index: index};
                     selectedNode.querySelector('circle').setAttribute('fill', highlightColors[index]);
+
+                    // Change text color based on contrast
+                    selectedNode.querySelector('text').setAttribute('fill', getContrastColor(highlightColors[index]));
                     saveState();
                 }
             }
@@ -127,8 +119,16 @@ function setupNodeMenu() {
             const nodeId = selectedNode.dataset.id;
             const node = findNodeById(treeData, nodeId);
             if (node) {
+                // Check if the node does not have a highlight
+                if (!node.highlight) {
+                    showNotification('Node does not have a highlight', 'warning');
+                    return;
+                }
+
                 node.highlight = null;
                 selectedNode.querySelector('circle').setAttribute('fill', '#4CAF50');
+                selectedNode.querySelector('text').setAttribute('fill', 'white');
+                showNotification('Highlight removed', 'success');
                 saveState();
             }
         }
@@ -141,8 +141,24 @@ function setupNodeMenu() {
             if (node) {
                 node.highlight = {type: 'custom', color: customHighlight.value};
                 selectedNode.querySelector('circle').setAttribute('fill', customHighlight.value);
+
+                // Change text color based on contrast
+                selectedNode.querySelector('text').setAttribute('fill', getContrastColor(customHighlight.value));
                 saveState();
             }
+        }
+    });
+
+    deleteNodeBtn.addEventListener('click', () => {
+        if (selectedNode && selectedNode.parentNode.childNodes.length > 1) {
+            const nodeId = selectedNode.dataset.id;
+            removeNodeFromTree(treeData, nodeId);
+            selectedNode.remove();
+            hideNodeMenu();
+            showNotification('Node deleted', 'success');
+            saveState();
+        } else {
+            showNotification('Cannot delete root node', 'error');
         }
     });
 }
@@ -150,7 +166,6 @@ function setupNodeMenu() {
 function showNodeMenu(node) {
     const nodeMenu = document.getElementById('node-menu');
     const nodeValue = document.getElementById('node-value');
-    const deleteNodeBtn = document.getElementById('delete-node');
     const customHighlight = document.getElementById('custom-highlight');
 
     selectedNode = node;
@@ -164,9 +179,6 @@ function showNodeMenu(node) {
     nodeMenu.style.top = `${rect.top}px`;
 
     nodeMenu.classList.remove('hidden');
-
-    // Disable delete button for root node
-    deleteNodeBtn.disabled = !treeNode.parent;
 
     if (treeNode.highlight) {
         if (treeNode.highlight.type === 'custom') {
@@ -194,6 +206,31 @@ function setupGlobalColorPickers() {
             saveState();
         });
     });
+}
+
+function showNotification(message, type = 'info', duration = 3000) {
+    const container = document.getElementById('notification-container');
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+
+    container.appendChild(notification);
+
+    // Trigger reflow to enable transition
+    notification.offsetHeight;
+
+    // Add 'show' class to fade in
+    notification.classList.add('show');
+
+    setTimeout(() => {
+        // Remove 'show' class to fade out
+        notification.classList.remove('show');
+
+        // Remove the notification from the DOM after fade out
+        setTimeout(() => {
+            container.removeChild(notification);
+        }, 300);
+    }, duration);
 }
 
 // <------------------------Tree Operations------------------------>
@@ -233,6 +270,9 @@ function renderTree(node, parentElement) {
     if (node.highlight) {
         const color = node.highlight.type === 'custom' ? node.highlight.color : highlightColors[node.highlight.index];
         nodeElement.querySelector('circle').setAttribute('fill', color);
+
+        // Change text color based on contrast
+        nodeElement.querySelector('text').setAttribute('fill', getContrastColor(color));
     }
     parentElement.appendChild(nodeElement);
 
