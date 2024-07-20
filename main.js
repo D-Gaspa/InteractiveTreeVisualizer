@@ -35,8 +35,7 @@ function loadState() {
         document.getElementById('tree-container').style.backgroundColor = containerBackgroundColor;
         if (containerBackgroundColor === 'transparent') {
             document.getElementById('container-transparent-background').checked = true;
-        }
-        else {
+        } else {
             document.getElementById('container-background-color').value = containerBackgroundColor;
         }
     }
@@ -100,8 +99,7 @@ function setupEventListeners() {
     });
 
     exportTreeButton.addEventListener('click', () => {
-        console.log('Export tree clicked');
-        // Functionality to be implemented later
+        exportTreeButton.addEventListener('click', exportTreeAsPNG);
     });
     setupResetButtons();
 }
@@ -178,6 +176,18 @@ function getContrastColor(hex_color) {
 function updateGlobalColorPickers() {
     document.querySelectorAll('#global-color-pickers input').forEach((picker, index) => {
         picker.value = highlightColors[index];
+    });
+}
+
+function setupGlobalColorPickers() {
+    const colorPickers = document.querySelectorAll('#global-color-pickers input');
+    colorPickers.forEach((picker, index) => {
+        picker.addEventListener('input', () => {
+            highlightColors[index] = picker.value;
+            updateAllNodesHighlightColor(index, picker.value);
+            updateHighlightButtonColors();
+            saveState();
+        });
     });
 }
 
@@ -309,18 +319,6 @@ function hideNodeMenu() {
     const nodeMenu = document.getElementById('node-menu');
     nodeMenu.classList.add('hidden');
     selectedNode = null;
-}
-
-function setupGlobalColorPickers() {
-    const colorPickers = document.querySelectorAll('#global-color-pickers input');
-    colorPickers.forEach((picker, index) => {
-        picker.addEventListener('input', () => {
-            highlightColors[index] = picker.value;
-            updateAllNodesHighlightColor(index, picker.value);
-            updateHighlightButtonColors();
-            saveState();
-        });
-    });
 }
 
 function showNotification(message, type = 'info', duration = 3000) {
@@ -508,4 +506,59 @@ function updateAllNodesHighlightColor(colorIndex, newColor) {
         svg.innerHTML = ''; // Clear existing tree
         renderTree(treeData, svg);
     }
+}
+
+// <------------------------Export Tree------------------------>
+
+function exportTreeAsPNG() {
+    const svg = document.getElementById('tree-svg');
+    const container = document.getElementById('tree-container');
+    const scaleFactor = parseFloat(document.getElementById('scale-factor').value);
+    const useTransparentBackground = document.getElementById('container-transparent-background').checked;
+    const backgroundColor = useTransparentBackground ? 'transparent' : document.getElementById('container-background-color').value;
+
+    // Create a canvas element
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Set canvas size
+    canvas.width = container.offsetWidth * scaleFactor;
+    canvas.height = container.offsetHeight * scaleFactor;
+
+    // Set background
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Convert SVG to data URL
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+    const DOMURL = window.URL || window.webkitURL || window;
+    const url = DOMURL.createObjectURL(svgBlob);
+
+    // Create image from SVG
+    const img = new Image();
+    img.onload = function() {
+        // Calculate scaling to maintain the aspect ratio
+        const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+        const x = (canvas.width / 2) - (img.width / 2) * scale;
+        const y = (canvas.height / 2) - (img.height / 2) * scale;
+
+        // Draw image on canvas
+        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+
+        // Convert canvas to PNG
+        const pngUrl = canvas.toDataURL('image/png');
+
+        // Trigger download
+        const downloadLink = document.createElement('a');
+        downloadLink.href = pngUrl;
+        downloadLink.download = 'tree_visualization.png';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+        // Clean up
+        DOMURL.revokeObjectURL(url);
+    };
+    img.src = url;
 }

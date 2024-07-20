@@ -45,8 +45,8 @@ main {
 
 input:focus {
     outline: none;
-    border-color: #4591ce;
-    box-shadow: 0 0 5px rgb(52, 110, 157);
+    border: 1px solid #d7d7d7;
+    box-shadow: 0 0 5px rgb(133, 133, 133);
 }
 
 #export-options {
@@ -55,6 +55,20 @@ input:focus {
     align-items: center;
     justify-content: center;
     gap: 10px;
+}
+
+#export-options button {
+    background: #575d5d;
+}
+
+#export-options label {
+    margin-right: 5px;
+}
+
+#export-options input[type="number"],
+#export-options input[type="color"],
+#export-options input[type="checkbox"] {
+    margin-right: 15px;
 }
 
 #export-options input[type="number"] {
@@ -68,8 +82,16 @@ input[type="color"] {
     width: 50px;
     height: 30px;
     padding: 0;
-    border: none;
     cursor: pointer;
+    background: none;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+    border: none;
 }
 
 button, input {
@@ -88,8 +110,8 @@ button:hover {
 
 button:active {
     outline: none;
-    border-color: #4591ce;
-    box-shadow: 0 0 5px rgb(52, 110, 157);
+    border: 1px solid #ffffff;
+    box-shadow: 0 0 5px rgb(133, 133, 133);
 }
 
 .btn-danger {
@@ -121,8 +143,11 @@ button:active {
 .node-menu input,
 .node-menu button {
     display: block;
-    width: 100%;
     margin-bottom: 5px;
+}
+
+.node-menu input[type="color"] {
+    width: 100%;
 }
 
 .node-menu input[type="text"] {
@@ -148,11 +173,11 @@ button:active {
 }
 
 .color-pickers {
+    display: flex;
+    gap: 10px;
     position: static;
-    margin: 20px auto;
     transform: none;
     background-color: transparent;
-    box-shadow: none;
     padding: 0;
 }
 
@@ -160,6 +185,17 @@ button:active {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.color-picker-container input[type="color"] {
+    border: 1px solid #555;
+    background: none;
+}
+
+.color-picker-container input[type="color"]:focus {
+    outline: none;
+    border: 1px solid #ffffff;
+    box-shadow: 0 0 5px rgb(133, 133, 133);
 }
 
 h3 {
