@@ -1,3 +1,4 @@
+const DEFAULT_CONTAINER_BACKGROUND_COLOR = '#2a2a2a';
 const DEFAULT_HIGHLIGHT_COLORS = ['#1AD1B2', '#EA6C6C', '#2175C4'];
 const DEFAULT_TREE_DATA = {
     id: Date.now(),
@@ -7,8 +8,14 @@ const DEFAULT_TREE_DATA = {
     children: [],
     highlight: null
 };
+const NODE_RADIUS = 50;
+const VERTICAL_SPACING = 100;
+const HORIZONTAL_SPACING = 150;
+const TOP_MARGIN = 30;
+const BOTTOM_MARGIN = 30;
 
 let selectedNode = null;
+let containerBackgroundColor = DEFAULT_CONTAINER_BACKGROUND_COLOR;
 let highlightColors = DEFAULT_HIGHLIGHT_COLORS;
 let treeData = null;
 
@@ -22,6 +29,23 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadState() {
+    const savedBackground = localStorage.getItem('backgroundColor');
+    if (savedBackground) {
+        containerBackgroundColor = savedBackground;
+        document.getElementById('tree-container').style.backgroundColor = containerBackgroundColor;
+        if (containerBackgroundColor === 'transparent') {
+            document.getElementById('container-transparent-background').checked = true;
+        }
+        else {
+            document.getElementById('container-background-color').value = containerBackgroundColor;
+        }
+    }
+
+    const scaleFactor = localStorage.getItem('scaleFactor');
+    if (scaleFactor) {
+        document.getElementById('scale-factor').value = scaleFactor;
+    }
+
     const savedColors = localStorage.getItem('highlightColors');
     if (savedColors) {
         highlightColors = JSON.parse(savedColors);
@@ -37,6 +61,8 @@ function loadState() {
 }
 
 function saveState() {
+    localStorage.setItem('backgroundColor', containerBackgroundColor);
+    localStorage.setItem('scaleFactor', document.getElementById('scale-factor').value);
     localStorage.setItem('highlightColors', JSON.stringify(highlightColors));
     localStorage.setItem('treeData', JSON.stringify(treeData));
 }
@@ -44,7 +70,34 @@ function saveState() {
 
 // <------------------------UI Controls------------------------>
 function setupEventListeners() {
+    const scaleFactorInput = document.getElementById('scale-factor');
+    const containerColorPicker = document.getElementById('container-background-color');
+    const containerTransparentCheckbox = document.getElementById('container-transparent-background');
     const exportTreeButton = document.getElementById('export-tree');
+
+    scaleFactorInput.addEventListener('input', () => {
+        saveState()
+        // Full functionality to be implemented later
+    });
+
+    containerColorPicker.addEventListener('input', () => {
+        if (!containerTransparentCheckbox.checked) {
+            containerBackgroundColor = containerColorPicker.value;
+            document.getElementById('tree-container').style.backgroundColor = containerBackgroundColor;
+            saveState();
+        }
+    });
+
+    containerTransparentCheckbox.addEventListener('change', () => {
+        if (containerTransparentCheckbox.checked) {
+            containerBackgroundColor = 'transparent';
+            document.getElementById('tree-container').style.backgroundColor = containerBackgroundColor;
+        } else {
+            containerBackgroundColor = containerColorPicker.value;
+            document.getElementById('tree-container').style.backgroundColor = containerBackgroundColor;
+        }
+        saveState();
+    });
 
     exportTreeButton.addEventListener('click', () => {
         console.log('Export tree clicked');
@@ -59,6 +112,7 @@ function setupResetButtons() {
     const resetAllBtn = document.getElementById('reset-all');
 
     resetColorsBtn.addEventListener('click', () => {
+        resetExportColors();
         highlightColors = [...DEFAULT_HIGHLIGHT_COLORS];
         updateHighlightButtonColors();
         updateGlobalColorPickers();
@@ -79,6 +133,8 @@ function setupResetButtons() {
     });
 
     resetAllBtn.addEventListener('click', () => {
+        resetExportColors();
+        document.getElementById('scale-factor').value = 1;
         highlightColors = [...DEFAULT_HIGHLIGHT_COLORS];
         treeData = {
             ...DEFAULT_TREE_DATA,
@@ -91,6 +147,13 @@ function setupResetButtons() {
         saveState();
         showNotification('All settings reset to default', 'success');
     });
+}
+
+function resetExportColors() {
+    containerBackgroundColor = DEFAULT_CONTAINER_BACKGROUND_COLOR;
+    document.getElementById('container-background-color').value = containerBackgroundColor;
+    document.getElementById('container-transparent-background').checked = false;
+    document.getElementById('tree-container').style.backgroundColor = containerBackgroundColor;
 }
 
 function updateHighlightButtonColors() {
@@ -286,14 +349,46 @@ function showNotification(message, type = 'info', duration = 3000) {
 }
 
 // <------------------------Tree Operations------------------------>
+function calculateSVGDimensions(treeData) {
+    let maxDepth = 0;
+    let maxWidth = 0;
+
+    function traverse(node, depth) {
+        maxDepth = Math.max(maxDepth, depth);
+
+        if (node.children.length === 0) {
+            maxWidth++;
+        } else {
+            node.children.forEach(child => traverse(child, depth + 1));
+        }
+    }
+
+    traverse(treeData, 0);
+
+    const height = maxDepth + TOP_MARGIN + BOTTOM_MARGIN + NODE_RADIUS * 2 + VERTICAL_SPACING * maxDepth;
+    const width = maxWidth * HORIZONTAL_SPACING + NODE_RADIUS * 2;
+
+    return {width, height};
+}
+
 function initializeTree() {
     const svg = document.getElementById('tree-svg');
     const container = document.getElementById('tree-container');
 
     // Set SVG viewBox to match container size
     function updateSVGViewBox() {
-        const {width, height} = container.getBoundingClientRect();
-        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        const dimensions = calculateSVGDimensions(treeData);
+        svg.setAttribute('viewBox', `0 0 ${dimensions.width} ${dimensions.height}`);
+        container.style.width = `${dimensions.width}px`;
+        container.style.height = `${dimensions.height}px`;
+
+        // Update root node position
+        treeData.x = dimensions.width / 2;
+        treeData.y = TOP_MARGIN + NODE_RADIUS;
+
+        // Clear existing tree and re-render
+        svg.innerHTML = '';
+        renderTree(treeData, svg);
     }
 
     // Update viewBox on window resize
@@ -319,7 +414,11 @@ function initializeTree() {
     saveState();
 }
 
-function renderTree(node, parentElement) {
+function renderTree(node, parentElement, depth = 0, index = 0, siblings = 1) {
+    const dimensions = calculateSVGDimensions(treeData);
+    const x = (index + 1) * (dimensions.width / (siblings + 1));
+    const y = TOP_MARGIN + (depth + 1) * VERTICAL_SPACING;
+
     const nodeElement = createNode(node.text, node.x, node.y, node.id);
     if (node.highlight) {
         const color = node.highlight.type === 'custom' ? node.highlight.color : highlightColors[node.highlight.index];
@@ -330,8 +429,21 @@ function renderTree(node, parentElement) {
     }
     parentElement.appendChild(nodeElement);
 
-    node.children.forEach(child => {
-        renderTree(child, parentElement);
+    // Draw lines to children
+    node.children.forEach((child, childIndex) => {
+        const childX = (childIndex + 1) * (dimensions.width / (node.children.length + 1));
+        const childY = TOP_MARGIN + (depth + 2) * VERTICAL_SPACING;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x.toString());
+        line.setAttribute('y1', y.toString());
+        line.setAttribute('x2', childX.toString());
+        line.setAttribute('y2', childY.toString());
+        line.setAttribute('stroke', '#666');
+        line.setAttribute('stroke-width', '2');
+        parentElement.appendChild(line);
+
+        renderTree(child, parentElement, depth + 1, childIndex, node.children.length);
     });
 }
 
@@ -341,7 +453,7 @@ function createNode(text, x, y, id) {
     nodeGroup.dataset.id = id;
 
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('r', '30');
+    circle.setAttribute('r', NODE_RADIUS.toString());
     circle.setAttribute('fill', '#4CAF50');
 
     const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
