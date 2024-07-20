@@ -1,5 +1,5 @@
 let selectedNode = null;
-let highlightColors = ['#FF5733', '#33FF57', '#3357FF'];
+let highlightColors = ['#1AD1B2', '#EA6C6C', '#2175C4'];
 let treeData = null;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -82,7 +82,13 @@ function setupNodeMenu() {
 
     nodeValue.addEventListener('input', () => {
         if (selectedNode) {
-            selectedNode.querySelector('text').textContent = nodeValue.value;
+            const nodeId = selectedNode.dataset.id;
+            const node = findNodeById(treeData, nodeId);
+            if (node) {
+                node.text = nodeValue.value;
+                selectedNode.querySelector('text').textContent = nodeValue.value;
+                saveState();
+            }
         }
     });
 
@@ -92,25 +98,39 @@ function setupNodeMenu() {
 
     deleteNodeBtn.addEventListener('click', () => {
         if (selectedNode && selectedNode.parentNode.childNodes.length > 1) {
+            const nodeId = selectedNode.dataset.id;
+            removeNodeFromTree(treeData, nodeId);
             selectedNode.remove();
             hideNodeMenu();
+            saveState();
         } else {
             console.log('Cannot delete root node');
         }
     });
 
-    document.querySelectorAll('.highlight-btn').forEach((btn) => {
+    document.querySelectorAll('.highlight-btn').forEach((btn, index) => {
         btn.addEventListener('click', () => {
             if (selectedNode) {
-                const index = parseInt(btn.dataset.index);
-                selectedNode.querySelector('circle').setAttribute('fill', highlightColors[index]);
+                const nodeId = selectedNode.dataset.id;
+                const node = findNodeById(treeData, nodeId);
+                if (node) {
+                    node.highlight = {type: 'global', index: index};
+                    selectedNode.querySelector('circle').setAttribute('fill', highlightColors[index]);
+                    saveState();
+                }
             }
         });
     });
 
     removeHighlightBtn.addEventListener('click', () => {
         if (selectedNode) {
-            selectedNode.querySelector('circle').setAttribute('fill', '#4CAF50');
+            const nodeId = selectedNode.dataset.id;
+            const node = findNodeById(treeData, nodeId);
+            if (node) {
+                node.highlight = null;
+                selectedNode.querySelector('circle').setAttribute('fill', '#4CAF50');
+                saveState();
+            }
         }
     });
 
@@ -119,7 +139,7 @@ function setupNodeMenu() {
             const nodeId = selectedNode.dataset.id;
             const node = findNodeById(treeData, nodeId);
             if (node) {
-                node.color = customHighlight.value;
+                node.highlight = {type: 'custom', color: customHighlight.value};
                 selectedNode.querySelector('circle').setAttribute('fill', customHighlight.value);
                 saveState();
             }
@@ -131,9 +151,13 @@ function showNodeMenu(node) {
     const nodeMenu = document.getElementById('node-menu');
     const nodeValue = document.getElementById('node-value');
     const deleteNodeBtn = document.getElementById('delete-node');
+    const customHighlight = document.getElementById('custom-highlight');
 
     selectedNode = node;
-    nodeValue.value = node.querySelector('text').textContent;
+    const nodeId = node.dataset.id;
+    const treeNode = findNodeById(treeData, nodeId);
+
+    nodeValue.value = treeNode.text;
 
     const rect = node.getBoundingClientRect();
     nodeMenu.style.left = `${rect.right + 10}px`;
@@ -142,9 +166,17 @@ function showNodeMenu(node) {
     nodeMenu.classList.remove('hidden');
 
     // Disable delete button for root node
-    deleteNodeBtn.disabled = node.parentNode.childNodes.length === 1;
+    deleteNodeBtn.disabled = !treeNode.parent;
 
-    updateHighlightButtonColors();
+    if (treeNode.highlight) {
+        if (treeNode.highlight.type === 'custom') {
+            customHighlight.value = treeNode.highlight.color;
+        } else {
+            customHighlight.value = highlightColors[treeNode.highlight.index];
+        }
+    } else {
+        customHighlight.value = '#000000';
+    }
 }
 
 function hideNodeMenu() {
@@ -183,11 +215,12 @@ function initializeTree() {
         renderTree(treeData, svg);
     } else {
         treeData = {
-            id: 1,
+            id: Date.now(),
             text: 'Root',
             x: svg.viewBox.baseVal.width / 2,
             y: svg.viewBox.baseVal.height / 2,
-            children: []
+            children: [],
+            highlight: null
         };
         renderTree(treeData, svg);
     }
@@ -196,9 +229,10 @@ function initializeTree() {
 }
 
 function renderTree(node, parentElement) {
-    const nodeElement = createNode(node.text, node.x, node.y);
-    if (node.color) {
-        nodeElement.querySelector('circle').setAttribute('fill', node.color);
+    const nodeElement = createNode(node.text, node.x, node.y, node.id);
+    if (node.highlight) {
+        const color = node.highlight.type === 'custom' ? node.highlight.color : highlightColors[node.highlight.index];
+        nodeElement.querySelector('circle').setAttribute('fill', color);
     }
     parentElement.appendChild(nodeElement);
 
@@ -207,10 +241,10 @@ function renderTree(node, parentElement) {
     });
 }
 
-function createNode(text, x, y) {
+function createNode(text, x, y, id) {
     const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     nodeGroup.setAttribute('transform', `translate(${x}, ${y})`);
-    nodeGroup.dataset.id = Date.now().toString(); // Unique identifier for the node
+    nodeGroup.dataset.id = id;
 
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('r', '30');
@@ -231,6 +265,16 @@ function createNode(text, x, y) {
     });
 
     return nodeGroup;
+}
+
+function removeNodeFromTree(node, id) {
+    node.children = node.children.filter(child => {
+        if (child.id.toString() === id) {
+            return false;
+        }
+        removeNodeFromTree(child, id);
+        return true;
+    });
 }
 
 function findNodeById(node, id) {
