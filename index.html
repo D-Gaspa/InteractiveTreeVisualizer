@@ -6,7 +6,7 @@
     <title>Interactive Tree Visualizer</title>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="dark-mode">
+<body>
 <div id="app">
     <header>
         <h1>Interactive Tree Visualizer</h1>
@@ -17,7 +17,21 @@
         </div>
         <div id="controls">
             <button id="export-tree">Export Tree</button>
-            <button id="toggle-theme">Toggle Theme</button>
+        </div>
+        <div id="global-color-pickers" class="color-pickers">
+            <h3>Global Highlight Colors</h3>
+            <div class="color-picker-container">
+                <label for="highlight1">Highlight 1:</label>
+                <input type="color" id="highlight1" value="#FF5733">
+            </div>
+            <div class="color-picker-container">
+                <label for="highlight2">Highlight 2:</label>
+                <input type="color" id="highlight2" value="#33FF57">
+            </div>
+            <div class="color-picker-container">
+                <label for="highlight3">Highlight 3:</label>
+                <input type="color" id="highlight3" value="#3357FF">
+            </div>
         </div>
     </main>
     <footer>
@@ -27,21 +41,22 @@
 <div id="node-menu" class="node-menu hidden">
     <label for="node-value"></label><input type="text" id="node-value" placeholder="Node Value">
     <button id="add-child">Add Child</button>
-    <button id="delete-node">Delete Node</button>
-    <div class="highlight-buttons">
-        <button class="highlight-btn" data-color="#FF5733">H1</button>
-        <button class="highlight-btn" data-color="#33FF57">H2</button>
-        <button class="highlight-btn" data-color="#3357FF">H3</button>
+    <div class="highlight-section">
+        <label>Preset Highlights:</label>
+        <div class="highlight-buttons">
+            <button class="highlight-btn" data-index="0">H1</button>
+            <button class="highlight-btn" data-index="1">H2</button>
+            <button class="highlight-btn" data-index="2">H3</button>
+        </div>
     </div>
-    <button id="remove-highlight">Remove Highlight</button>
-    <label for="custom-highlight"></label><input type="color" id="custom-highlight" value="#000000">
+    <div class="custom-highlight-section">
+        <label>Custom Highlight Color:</label>
+        <label for="custom-highlight"></label><input type="color" id="custom-highlight" value="#000000">
+    </div>
+    <button id="remove-highlight" class="btn-danger">Remove Highlight</button>
+    <button id="delete-node" class="btn-danger">Delete Node</button>
 </div>
 
-<div id="global-color-pickers" class="color-pickers">
-    <label for="highlight1"></label><input type="color" id="highlight1" value="#FF5733">
-    <label for="highlight2"></label><input type="color" id="highlight2" value="#33FF57">
-    <label for="highlight3"></label><input type="color" id="highlight3" value="#3357FF">
-</div>
 <script src="main.js"></script>
 </body>
 </html>

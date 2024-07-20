@@ -3,6 +3,8 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
+    background-color: #1a1a1a;
+    color: #ffffff;
     transition: background-color 0.3s, color 0.3s;
 }
 
@@ -44,6 +46,9 @@ main {
 }
 
 button {
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #555;
     padding: 0.5rem 1rem;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -54,15 +59,23 @@ button:hover {
     transform: scale(1.05);
 }
 
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
 .node-menu {
     position: absolute;
-    background-color: #fff;
-    border: 1px solid #ccc;
+    background-color: #333;
+    border: 1px solid #555;
     border-radius: 5px;
     padding: 10px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     z-index: 1000;
     transition: opacity 0.3s, transform 0.3s;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .node-menu.hidden {
@@ -78,63 +91,39 @@ button:hover {
     margin-bottom: 5px;
 }
 
-.highlight-buttons {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
-}
-
-.highlight-buttons button {
-    flex: 1;
-    margin: 0 2px;
-}
-
-.color-pickers {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    display: flex;
-    gap: 10px;
-}
-
-.dark-mode .node-menu {
-    background-color: #333;
-    border-color: #555;
-    color: #fff;
-}
-
-.dark-mode .node-menu input[type="text"] {
+.node-menu input[type="text"] {
     background-color: #444;
     color: #fff;
     border: 1px solid #666;
 }
 
-.dark-mode .node-menu button {
-    background-color: #555;
-    color: #fff;
-    border: 1px solid #777;
+.highlight-section,
+.custom-highlight-section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
-/* Dark mode styles */
-body.dark-mode {
-    background-color: #1a1a1a;
-    color: #ffffff;
+.highlight-buttons {
+    display: flex;
+    gap: 5px;
 }
 
-.dark-mode button {
-    background-color: #333;
-    color: #fff;
-    border: 1px solid #555;
+.highlight-btn {
+    flex: 1;
 }
 
-/* Light mode styles */
-body.light-mode {
-    background-color: #ffffff;
-    color: #000000;
+.color-pickers {
+    position: static;
+    margin: 20px auto;
+    transform: none;
+    background-color: transparent;
+    box-shadow: none;
+    padding: 0;
 }
 
-.light-mode button {
-    background-color: #f0f0f0;
-    color: #000;
-    border: 1px solid #ccc;
+.color-picker-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }

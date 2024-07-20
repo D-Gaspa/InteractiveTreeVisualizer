@@ -1,26 +1,68 @@
 let selectedNode = null;
-const highlightColors = ['#FF5733', '#33FF57', '#3357FF'];
+let highlightColors = ['#FF5733', '#33FF57', '#3357FF'];
+let treeData = null;
 
 document.addEventListener('DOMContentLoaded', () => {
+    loadState();
     initializeTree();
     setupEventListeners();
     setupNodeMenu();
     setupGlobalColorPickers();
 });
 
+function loadState() {
+    const savedColors = localStorage.getItem('highlightColors');
+    if (savedColors) {
+        highlightColors = JSON.parse(savedColors);
+    }
+
+    const savedTreeData = localStorage.getItem('treeData');
+    if (savedTreeData) {
+        treeData = JSON.parse(savedTreeData);
+    }
+
+    updateHighlightButtonColors();
+    updateGlobalColorPickers();
+}
+
+function saveState() {
+    localStorage.setItem('highlightColors', JSON.stringify(highlightColors));
+    localStorage.setItem('treeData', JSON.stringify(treeData));
+}
+
+
 // <------------------------UI Controls------------------------>
 function setupEventListeners() {
     const exportTreeButton = document.getElementById('export-tree');
-    const toggleThemeButton = document.getElementById('toggle-theme');
 
     exportTreeButton.addEventListener('click', () => {
         console.log('Export tree clicked');
         // Functionality to be implemented later
     });
+}
 
-    toggleThemeButton.addEventListener('click', () => {
-        document.body.classList.toggle('dark-mode');
-        document.body.classList.toggle('light-mode');
+function updateHighlightButtonColors() {
+    document.querySelectorAll('.highlight-btn').forEach((btn, index) => {
+        btn.style.backgroundColor = highlightColors[index];
+        btn.style.color = getContrastColor(highlightColors[index]);
+    });
+}
+
+function getContrastColor(hex_color) {
+    // Convert hex to RGB
+    const r = parseInt(hex_color.substring(1, 3), 16);
+    const g = parseInt(hex_color.substring(3, 5), 16);
+    const b = parseInt(hex_color.substring(5, 7), 16);
+
+    // Calculate luminance
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    // Return black or white depending on luminance
+    return (yiq >= 128) ? 'black' : 'white';
+}
+
+function updateGlobalColorPickers() {
+    document.querySelectorAll('#global-color-pickers input').forEach((picker, index) => {
+        picker.value = highlightColors[index];
     });
 }
 
@@ -57,9 +99,10 @@ function setupNodeMenu() {
         }
     });
 
-    document.querySelectorAll('.highlight-btn').forEach((btn, index) => {
+    document.querySelectorAll('.highlight-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
             if (selectedNode) {
+                const index = parseInt(btn.dataset.index);
                 selectedNode.querySelector('circle').setAttribute('fill', highlightColors[index]);
             }
         });
@@ -73,7 +116,13 @@ function setupNodeMenu() {
 
     customHighlight.addEventListener('input', () => {
         if (selectedNode) {
-            selectedNode.querySelector('circle').setAttribute('fill', customHighlight.value);
+            const nodeId = selectedNode.dataset.id;
+            const node = findNodeById(treeData, nodeId);
+            if (node) {
+                node.color = customHighlight.value;
+                selectedNode.querySelector('circle').setAttribute('fill', customHighlight.value);
+                saveState();
+            }
         }
     });
 }
@@ -94,6 +143,8 @@ function showNodeMenu(node) {
 
     // Disable delete button for root node
     deleteNodeBtn.disabled = node.parentNode.childNodes.length === 1;
+
+    updateHighlightButtonColors();
 }
 
 function hideNodeMenu() {
@@ -107,7 +158,8 @@ function setupGlobalColorPickers() {
     colorPickers.forEach((picker, index) => {
         picker.addEventListener('input', () => {
             highlightColors[index] = picker.value;
-            document.querySelector(`.highlight-btn:nth-child(${index + 1})`).style.backgroundColor = picker.value;
+            updateHighlightButtonColors();
+            saveState();
         });
     });
 }
@@ -127,14 +179,38 @@ function initializeTree() {
     window.addEventListener('resize', updateSVGViewBox);
     updateSVGViewBox();
 
-    // Create root node
-    const rootNode = createNode('Root', svg.viewBox.baseVal.width / 2, svg.viewBox.baseVal.height / 2);
-    svg.appendChild(rootNode);
+    if (treeData) {
+        renderTree(treeData, svg);
+    } else {
+        treeData = {
+            id: 1,
+            text: 'Root',
+            x: svg.viewBox.baseVal.width / 2,
+            y: svg.viewBox.baseVal.height / 2,
+            children: []
+        };
+        renderTree(treeData, svg);
+    }
+
+    saveState();
+}
+
+function renderTree(node, parentElement) {
+    const nodeElement = createNode(node.text, node.x, node.y);
+    if (node.color) {
+        nodeElement.querySelector('circle').setAttribute('fill', node.color);
+    }
+    parentElement.appendChild(nodeElement);
+
+    node.children.forEach(child => {
+        renderTree(child, parentElement);
+    });
 }
 
 function createNode(text, x, y) {
     const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     nodeGroup.setAttribute('transform', `translate(${x}, ${y})`);
+    nodeGroup.dataset.id = Date.now().toString(); // Unique identifier for the node
 
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('r', '30');
@@ -155,4 +231,15 @@ function createNode(text, x, y) {
     });
 
     return nodeGroup;
+}
+
+function findNodeById(node, id) {
+    if (node.id.toString() === id) {
+        return node;
+    }
+    for (let child of node.children) {
+        const found = findNodeById(child, id);
+        if (found) return found;
+    }
+    return null;
 }
