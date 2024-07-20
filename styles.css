@@ -36,7 +36,8 @@ main {
     margin: 1rem;
     position: relative;
     overflow: hidden;
-/*TODO: Check why a min height prevents the node from being centered*/
+    min-height: 400px;
+    /*TODO: Check why a min height prevents the node from being centered*/
 }
 
 #controls {
@@ -128,6 +129,25 @@ button:hover {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+h3 {
+    text-align: center;
+}
+
+.reset-buttons {
+    position: static;
+    margin: 20px auto;
+    transform: none;
+    background-color: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
+.reset-buttons button {
+    display: compact;
+    flex: 1;
+    margin: 0 5px;
 }
 
 .notification {

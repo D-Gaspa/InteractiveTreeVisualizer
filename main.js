@@ -1,5 +1,15 @@
+const DEFAULT_HIGHLIGHT_COLORS = ['#1AD1B2', '#EA6C6C', '#2175C4'];
+const DEFAULT_TREE_DATA = {
+    id: Date.now(),
+    text: 'Root',
+    x: 0,
+    y: 0,
+    children: [],
+    highlight: null
+};
+
 let selectedNode = null;
-let highlightColors = ['#1AD1B2', '#EA6C6C', '#2175C4'];
+let highlightColors = DEFAULT_HIGHLIGHT_COLORS;
 let treeData = null;
 
 // <------------------------Initialization------------------------>
@@ -39,6 +49,47 @@ function setupEventListeners() {
     exportTreeButton.addEventListener('click', () => {
         console.log('Export tree clicked');
         // Functionality to be implemented later
+    });
+    setupResetButtons();
+}
+
+function setupResetButtons() {
+    const resetColorsBtn = document.getElementById('reset-colors');
+    const resetTreeBtn = document.getElementById('reset-tree');
+    const resetAllBtn = document.getElementById('reset-all');
+
+    resetColorsBtn.addEventListener('click', () => {
+        highlightColors = [...DEFAULT_HIGHLIGHT_COLORS];
+        updateHighlightButtonColors();
+        updateGlobalColorPickers();
+        updateAllNodesHighlightColor();
+        saveState();
+        showNotification('Colors reset to default', 'success');
+    });
+
+    resetTreeBtn.addEventListener('click', () => {
+        treeData = {
+            ...DEFAULT_TREE_DATA,
+            x: document.getElementById('tree-svg').viewBox.baseVal.width / 2,
+            y: document.getElementById('tree-svg').viewBox.baseVal.height / 2
+        };
+        initializeTree();
+        saveState();
+        showNotification('Tree reset to default', 'success');
+    });
+
+    resetAllBtn.addEventListener('click', () => {
+        highlightColors = [...DEFAULT_HIGHLIGHT_COLORS];
+        treeData = {
+            ...DEFAULT_TREE_DATA,
+            x: document.getElementById('tree-svg').viewBox.baseVal.width / 2,
+            y: document.getElementById('tree-svg').viewBox.baseVal.height / 2
+        };
+        updateHighlightButtonColors();
+        updateGlobalColorPickers();
+        initializeTree();
+        saveState();
+        showNotification('All settings reset to default', 'success');
     });
 }
 
@@ -184,7 +235,7 @@ function showNodeMenu(node) {
         if (treeNode.highlight.type === 'custom') {
             customHighlight.value = treeNode.highlight.color;
         } else {
-            customHighlight.value = highlightColors[treeNode.highlight.index];
+            customHighlight.value = '#000000';
         }
     } else {
         customHighlight.value = '#000000';
@@ -202,6 +253,7 @@ function setupGlobalColorPickers() {
     colorPickers.forEach((picker, index) => {
         picker.addEventListener('input', () => {
             highlightColors[index] = picker.value;
+            updateAllNodesHighlightColor(index, picker.value);
             updateHighlightButtonColors();
             saveState();
         });
@@ -249,6 +301,7 @@ function initializeTree() {
     updateSVGViewBox();
 
     if (treeData) {
+        svg.innerHTML = ''; // Clear existing tree
         renderTree(treeData, svg);
     } else {
         treeData = {
@@ -259,6 +312,7 @@ function initializeTree() {
             children: [],
             highlight: null
         };
+        svg.innerHTML = ''; // Clear existing tree
         renderTree(treeData, svg);
     }
 
@@ -326,4 +380,20 @@ function findNodeById(node, id) {
         if (found) return found;
     }
     return null;
+}
+
+function updateAllNodesHighlightColor(colorIndex, newColor) {
+    const updateNodeColor = (node) => {
+        if (node.highlight && node.highlight.type === 'global' && node.highlight.index === colorIndex) {
+            node.highlight.color = newColor; // Update the node's highlight color
+        }
+        node.children.forEach(updateNodeColor);
+    };
+
+    if (treeData) {
+        updateNodeColor(treeData);
+        const svg = document.getElementById('tree-svg');
+        svg.innerHTML = ''; // Clear existing tree
+        renderTree(treeData, svg);
+    }
 }
