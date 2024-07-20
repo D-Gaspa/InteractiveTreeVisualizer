@@ -4,25 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Tree Visualizer</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body class="dark-mode">
-    <div id="app">
-        <header>
-            <h1>Interactive Tree Visualizer</h1>
-        </header>
-        <main>
-            <div id="tree-container"></div>
-            <div id="controls">
-                <button id="add-root-node">Add Root Node</button>
-                <button id="export-tree">Export Tree</button>
-                <button id="toggle-theme">Toggle Theme</button>
-            </div>
-        </main>
-        <footer>
-            <p>Interactive Tree Visualizer</p>
-        </footer>
+<div id="app">
+    <header>
+        <h1>Interactive Tree Visualizer</h1>
+    </header>
+    <main>
+        <div id="tree-container">
+            <svg id="tree-svg"></svg>
+        </div>
+        <div id="controls">
+            <button id="export-tree">Export Tree</button>
+            <button id="toggle-theme">Toggle Theme</button>
+        </div>
+    </main>
+    <footer>
+        <p>Interactive Tree Visualizer</p>
+    </footer>
+</div>
+<div id="node-menu" class="node-menu hidden">
+    <label for="node-value"></label><input type="text" id="node-value" placeholder="Node Value">
+    <button id="add-child">Add Child</button>
+    <button id="delete-node">Delete Node</button>
+    <div class="highlight-buttons">
+        <button class="highlight-btn" data-color="#FF5733">H1</button>
+        <button class="highlight-btn" data-color="#33FF57">H2</button>
+        <button class="highlight-btn" data-color="#3357FF">H3</button>
     </div>
-    <script type="module" src="js/main.js"></script>
+    <button id="remove-highlight">Remove Highlight</button>
+    <label for="custom-highlight"></label><input type="color" id="custom-highlight" value="#000000">
+</div>
+
+<div id="global-color-pickers" class="color-pickers">
+    <label for="highlight1"></label><input type="color" id="highlight1" value="#FF5733">
+    <label for="highlight2"></label><input type="color" id="highlight2" value="#33FF57">
+    <label for="highlight3"></label><input type="color" id="highlight3" value="#3357FF">
+</div>
+<script src="main.js"></script>
 </body>
 </html>
