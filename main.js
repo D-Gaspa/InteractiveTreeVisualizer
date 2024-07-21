@@ -1,5 +1,5 @@
 const DEFAULT_CONTAINER_BACKGROUND_COLOR = '#2a2a2a';
-const DEFAULT_TREE_COLOR = '#4CAF50';
+const DEFAULT_TREE_COLOR = '#2EA395';
 const DEFAULT_BORDER_COLOR = '#ffffff';
 const DEFAULT_HIGHLIGHT_COLORS = ['#1AD1B2', '#EA6C6C', '#2175C4'];
 const DEFAULT_TREE_DATA = {
@@ -49,9 +49,42 @@ function loadState() {
         document.getElementById('scale-factor').value = scaleFactor;
     }
 
-    const savedColors = localStorage.getItem('highlightColors');
-    if (savedColors) {
-        highlightColors = JSON.parse(savedColors);
+    const savedNodeColor = localStorage.getItem('nodeColor');
+    if (savedNodeColor) {
+        treeColor = savedNodeColor;
+        document.getElementById('node-color').value = treeColor;
+        if (treeColor === 'transparent') {
+            document.getElementById('node-transparent').checked = true;
+            document.getElementById('node-color').value = DEFAULT_TREE_COLOR;
+        } else {
+            document.getElementById('node-color').value = treeColor;
+        }
+    }
+
+    const noBorder = localStorage.getItem('noBorder');
+    const borderColorSameAsText = localStorage.getItem('borderColorSameAsText');
+
+    const savedBorderColor = localStorage.getItem('borderColor');
+    if (savedBorderColor) {
+        if (noBorder === 'true') {
+            borderColor = 'transparent';
+            document.getElementById('border-transparent').checked = true;
+            document.getElementById('border-color').value = DEFAULT_BORDER_COLOR;
+            document.getElementById('no-node-border').checked = true;
+        } else {
+            if (borderColorSameAsText === 'true') {
+                borderColor = getContrastColor(treeColor);
+                document.getElementById(`node-border-same-as-text`).checked = true;
+            } else {
+                borderColor = savedBorderColor;
+                document.getElementById('border-color').value = borderColor;
+            }
+        }
+    }
+
+    const savedHighlightColors = localStorage.getItem('highlightColors');
+    if (savedHighlightColors) {
+        highlightColors = JSON.parse(savedHighlightColors);
     }
 
     const savedTreeData = localStorage.getItem('treeData');
@@ -66,6 +99,10 @@ function loadState() {
 function saveState() {
     localStorage.setItem('backgroundColor', containerBackgroundColor);
     localStorage.setItem('scaleFactor', document.getElementById('scale-factor').value);
+    localStorage.setItem('nodeColor', treeColor);
+    localStorage.setItem('borderColor', borderColor);
+    localStorage.setItem('noBorder', document.getElementById('no-node-border').checked);
+    localStorage.setItem('borderColorSameAsText', document.getElementById('node-border-same-as-text').checked);
     localStorage.setItem('highlightColors', JSON.stringify(highlightColors));
     localStorage.setItem('treeData', JSON.stringify(treeData));
 }
@@ -74,6 +111,11 @@ function saveState() {
 // <------------------------UI Controls------------------------>
 function setupEventListeners() {
     const scaleFactorInput = document.getElementById('scale-factor');
+    const nodeColorPicker = document.getElementById('node-color');
+    const nodeTransparentCheckbox = document.getElementById('node-transparent');
+    const borderColorPicker = document.getElementById('border-color');
+    const noBorderCheckbox = document.getElementById('no-node-border');
+    const borderColorSameAsTextCheckbox = document.getElementById('node-border-same-as-text');
     const containerColorPicker = document.getElementById('container-background-color');
     const containerTransparentCheckbox = document.getElementById('container-transparent-background');
     const exportTreeButton = document.getElementById('export-tree');
@@ -102,6 +144,61 @@ function setupEventListeners() {
         saveState();
     });
 
+    nodeColorPicker.addEventListener('input', () => {
+        if (!nodeTransparentCheckbox.checked) {
+            treeColor = nodeColorPicker.value;
+            if (borderColorSameAsTextCheckbox.checked) {
+                borderColor = getContrastColor(treeColor);
+            }
+            initializeTree();
+            saveState();
+        }
+    });
+
+    nodeTransparentCheckbox.addEventListener('change', () => {
+        if (nodeTransparentCheckbox.checked) {
+            treeColor = 'transparent';
+        } else {
+            treeColor = nodeColorPicker.value;
+        }
+        initializeTree();
+        saveState();
+    });
+
+    borderColorPicker.addEventListener('input', () => {
+        if (!noBorderCheckbox.checked && !borderColorSameAsTextCheckbox.checked) {
+            borderColor = borderColorPicker.value;
+            initializeTree();
+            saveState();
+        }
+    });
+
+    noBorderCheckbox.addEventListener('change', () => {
+        if (noBorderCheckbox.checked) {
+            borderColor = 'transparent';
+        } else {
+            if (borderColorSameAsTextCheckbox.checked) {
+                borderColor = getContrastColor(treeColor);
+            } else {
+                borderColor = borderColorPicker.value;
+            }
+        }
+        initializeTree();
+        saveState();
+    });
+
+    borderColorSameAsTextCheckbox.addEventListener('change', () => {
+        if (borderColorSameAsTextCheckbox.checked) {
+            if (!noBorderCheckbox.checked) {
+                borderColor = getContrastColor(treeColor);
+            }
+        } else {
+            borderColor = borderColorPicker.value;
+        }
+        initializeTree();
+        saveState();
+    });
+
     exportTreeButton.addEventListener('click', exportTreeAsPNG);
     setupResetButtons();
 }
@@ -113,6 +210,7 @@ function setupResetButtons() {
 
     resetColorsBtn.addEventListener('click', () => {
         resetExportColors();
+        resetNodeColors();
         highlightColors = [...DEFAULT_HIGHLIGHT_COLORS];
         updateHighlightButtonColors();
         updateGlobalColorPickers();
@@ -135,6 +233,7 @@ function setupResetButtons() {
     resetAllBtn.addEventListener('click', () => {
         resetExportColors();
         document.getElementById('scale-factor').value = 2;
+        resetNodeColors();
         highlightColors = [...DEFAULT_HIGHLIGHT_COLORS];
         treeData = {
             ...DEFAULT_TREE_DATA,
@@ -154,6 +253,16 @@ function resetExportColors() {
     document.getElementById('container-background-color').value = containerBackgroundColor;
     document.getElementById('container-transparent-background').checked = false;
     document.getElementById('tree-container').style.backgroundColor = containerBackgroundColor;
+}
+
+function resetNodeColors() {
+    treeColor = DEFAULT_TREE_COLOR;
+    borderColor = DEFAULT_BORDER_COLOR;
+    document.getElementById('node-color').value = treeColor;
+    document.getElementById('border-color').value = borderColor;
+    document.getElementById('node-transparent').checked = false;
+    document.getElementById('no-node-border').checked = false;
+    document.getElementById('node-border-same-as-text').checked = true;
 }
 
 function updateHighlightButtonColors() {
@@ -420,15 +529,14 @@ function renderTree(node, parentElement, depth = 0, index = 0, siblings = 1) {
     const y = TOP_MARGIN + (depth + 1) * VERTICAL_SPACING;
 
     const nodeElement = createNode(node.text, node.x, node.y, node.id);
+    let color = treeColor;
     if (node.highlight) {
-        const color = node.highlight.type === 'custom' ? node.highlight.color : highlightColors[node.highlight.index];
+        color = node.highlight.type === 'custom' ? node.highlight.color : highlightColors[node.highlight.index];
         nodeElement.querySelector('circle').setAttribute('fill', color);
-
-        // Change text color based on contrast
-        nodeElement.querySelector('text').setAttribute('fill', getContrastColor(color));
-        // Change text size
-        nodeElement.querySelector('text').setAttribute('font-size', '40px');
     }
+    nodeElement.querySelector('text').setAttribute('fill', getContrastColor(color));
+    nodeElement.querySelector('text').setAttribute('font-size', '40px');
+
     parentElement.appendChild(nodeElement);
 
     // Draw lines to children

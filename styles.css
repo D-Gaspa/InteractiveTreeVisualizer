@@ -43,6 +43,10 @@ input[type="color"]::-webkit-color-swatch {
     border: none;
 }
 
+label {
+    color: #d0d0d0;
+}
+
 button, input {
     background-color: #333;
     color: #fff;
@@ -135,6 +139,7 @@ input:focus {
 }
 
 #node-options h4 {
+    color: #dedede;
     margin-top: 0;
     margin-bottom: 10px;
 }
