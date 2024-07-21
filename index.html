@@ -17,15 +17,56 @@
         </div>
         <h3>Export Options</h3>
         <div id="export-options">
-            <label for="scale-factor">Scale Factor:</label>
-            <input type="number" id="scale-factor" value="2" min="0.5" max="5" step="0.5">
-            <label for="container-background-color">Background Color:</label>
-            <input type="color" id="container-background-color" value="#2a2a2a">
-            <label for="container-transparent-background">Transparent Background:</label>
-            <input type="checkbox" id="container-transparent-background">
+            <div class="pair-container">
+                <label for="scale-factor">Scale Factor:</label>
+                <input type="number" id="scale-factor" value="2" min="0.5" max="5" step="0.5">
+            </div>
+            <div class="pair-container">
+                <label for="container-background-color">Background Color:</label>
+                <input type="color" id="container-background-color" value="#2a2a2a">
+            </div>
+            <div class="pair-container">
+                <input type="checkbox" id="container-transparent-background">
+                <label for="container-transparent-background">Transparent Background</label>
+            </div>
             <button id="export-tree">Export Tree</button>
         </div>
-        <h3>Global Highlight Colors</h3>
+        <div class="divisor"></div>
+        <h3>Node Options</h3>
+        <div id="node-options">
+            <div class="node-section">
+                <h4>Node Color Options</h4>
+                <div class="section-content">
+                    <div class="pair-container">
+                        <label for="node-color">Node Color:</label>
+                        <input type="color" id="node-color" value="#4CAF50">
+                    </div>
+                    <div class="pair-container">
+                        <input type="checkbox" id="transparent-node-color">
+                        <label for="transparent-node-color">Transparent Node</label>
+                    </div>
+                </div>
+            </div>
+            <div class="border-section">
+                <h4>Node Border Options</h4>
+                <div class="section-content">
+                    <div class="pair-container">
+                        <label for="node-border-color">Node Border Color:</label>
+                        <input type="color" id="node-border-color" value="#ffffff">
+                    </div>
+                    <div class="pair-container">
+                        <input type="checkbox" id="node-border-same-as-text">
+                        <label for="node-border-same-as-text">Same as Text</label>
+                    </div>
+                    <div class="pair-container">
+                        <input type="checkbox" id="no-node-border">
+                        <label for="no-node-border">No Border</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="divisor"></div>
+        <h3>Highlight Options</h3>
         <div id="global-color-pickers" class="color-pickers">
             <div class="color-picker-container">
                 <label for="highlight1">Highlight 1:</label>
@@ -40,6 +81,7 @@
                 <input type="color" id="highlight3" value="#3357FF">
             </div>
         </div>
+        <div class="divisor"></div>
         <h3>Reset Options</h3>
         <div class="reset-buttons">
             <button id="reset-colors">Reset Colors</button>

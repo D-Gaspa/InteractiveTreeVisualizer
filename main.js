@@ -1,8 +1,10 @@
 const DEFAULT_CONTAINER_BACKGROUND_COLOR = '#2a2a2a';
+const DEFAULT_TREE_COLOR = '#4CAF50';
+const DEFAULT_BORDER_COLOR = '#ffffff';
 const DEFAULT_HIGHLIGHT_COLORS = ['#1AD1B2', '#EA6C6C', '#2175C4'];
 const DEFAULT_TREE_DATA = {
     id: Date.now(),
-    text: 'Root',
+    text: '1',
     x: 0,
     y: 0,
     children: [],
@@ -16,6 +18,8 @@ const BOTTOM_MARGIN = 30;
 
 let selectedNode = null;
 let containerBackgroundColor = DEFAULT_CONTAINER_BACKGROUND_COLOR;
+let treeColor = DEFAULT_TREE_COLOR;
+let borderColor = DEFAULT_BORDER_COLOR;
 let highlightColors = DEFAULT_HIGHLIGHT_COLORS;
 let treeData = null;
 
@@ -98,9 +102,7 @@ function setupEventListeners() {
         saveState();
     });
 
-    exportTreeButton.addEventListener('click', () => {
-        exportTreeButton.addEventListener('click', exportTreeAsPNG);
-    });
+    exportTreeButton.addEventListener('click', exportTreeAsPNG);
     setupResetButtons();
 }
 
@@ -132,7 +134,7 @@ function setupResetButtons() {
 
     resetAllBtn.addEventListener('click', () => {
         resetExportColors();
-        document.getElementById('scale-factor').value = 1;
+        document.getElementById('scale-factor').value = 2;
         highlightColors = [...DEFAULT_HIGHLIGHT_COLORS];
         treeData = {
             ...DEFAULT_TREE_DATA,
@@ -250,7 +252,7 @@ function setupNodeMenu() {
                 }
 
                 node.highlight = null;
-                selectedNode.querySelector('circle').setAttribute('fill', '#4CAF50');
+                selectedNode.querySelector('circle').setAttribute('fill', treeColor);
                 selectedNode.querySelector('text').setAttribute('fill', 'white');
                 showNotification('Highlight removed', 'success');
                 saveState();
@@ -399,7 +401,7 @@ function initializeTree() {
     } else {
         treeData = {
             id: Date.now(),
-            text: 'Root',
+            text: '1',
             x: svg.viewBox.baseVal.width / 2,
             y: svg.viewBox.baseVal.height / 2,
             children: [],
@@ -424,6 +426,8 @@ function renderTree(node, parentElement, depth = 0, index = 0, siblings = 1) {
 
         // Change text color based on contrast
         nodeElement.querySelector('text').setAttribute('fill', getContrastColor(color));
+        // Change text size
+        nodeElement.querySelector('text').setAttribute('font-size', '40px');
     }
     parentElement.appendChild(nodeElement);
 
@@ -452,13 +456,17 @@ function createNode(text, x, y, id) {
 
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('r', NODE_RADIUS.toString());
-    circle.setAttribute('fill', '#4CAF50');
+    circle.setAttribute('fill', treeColor);
+    circle.setAttribute('stroke', borderColor);
+    circle.setAttribute('stroke-width', '2.5');
 
     const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     textElement.textContent = text;
     textElement.setAttribute('text-anchor', 'middle');
     textElement.setAttribute('dominant-baseline', 'central');
     textElement.setAttribute('fill', 'white');
+    textElement.setAttribute('font-family', 'Arial, sans-serif');
+    textElement.setAttribute('font-size', '40px');
 
     nodeGroup.appendChild(circle);
     nodeGroup.appendChild(textElement);
@@ -537,11 +545,17 @@ function exportTreeAsPNG() {
 
     // Create image from SVG
     const img = new Image();
-    img.onload = function() {
+    img.onload = function () {
         // Calculate scaling to maintain the aspect ratio
         const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
         const x = (canvas.width / 2) - (img.width / 2) * scale;
         const y = (canvas.height / 2) - (img.height / 2) * scale;
+
+        // Set canvas context properties for better text rendering
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.textRendering = 'geometricPrecision';
+        ctx.fontSmooth = 'always';
 
         // Draw image on canvas
         ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
