@@ -1,7 +1,7 @@
 const DEFAULT_CONTAINER_BACKGROUND_COLOR = '#2a2a2a';
 const DEFAULT_TREE_COLOR = '#2EA395';
 const DEFAULT_BORDER_COLOR = '#ffffff';
-const DEFAULT_HIGHLIGHT_COLORS = ['#1AD1B2', '#EA6C6C', '#2175C4'];
+const DEFAULT_HIGHLIGHT_COLORS = ['#3FB116', '#C20F0F', '#2175C4'];
 const DEFAULT_TREE_DATA = {
     id: Date.now(),
     text: '1',
@@ -11,10 +11,11 @@ const DEFAULT_TREE_DATA = {
     highlight: null
 };
 const NODE_RADIUS = 50;
-const VERTICAL_SPACING = 100;
+const VERTICAL_SPACING = 150;
 const HORIZONTAL_SPACING = 150;
 const TOP_MARGIN = 30;
 const BOTTOM_MARGIN = 30;
+const HORIZONTAL_MARGIN = 30;
 
 let selectedNode = null;
 let containerBackgroundColor = DEFAULT_CONTAINER_BACKGROUND_COLOR;
@@ -329,7 +330,24 @@ function setupNodeMenu() {
     });
 
     addChildBtn.addEventListener('click', () => {
-        console.log('Add child functionality to be implemented');
+        if (selectedNode) {
+            const nodeId = selectedNode.dataset.id;
+            const parentNode = findNodeById(treeData, nodeId);
+            if (parentNode) {
+                const newChild = {
+                    id: Date.now(),
+                    text: parentNode.text,
+                    x: 0,
+                    y: 0,
+                    children: [],
+                    highlight: null
+                }
+                parentNode.children.push(newChild);
+                updateTreeLayout();
+                saveState();
+                showNotification('Child node added', 'success');
+            }
+        }
     });
 
     document.querySelectorAll('.highlight-btn').forEach((btn, index) => {
@@ -349,6 +367,21 @@ function setupNodeMenu() {
         });
     });
 
+    customHighlight.addEventListener('input', () => {
+        if (selectedNode) {
+            const nodeId = selectedNode.dataset.id;
+            const node = findNodeById(treeData, nodeId);
+            if (node) {
+                node.highlight = {type: 'custom', color: customHighlight.value};
+                selectedNode.querySelector('circle').setAttribute('fill', customHighlight.value);
+
+                // Change text color based on contrast
+                selectedNode.querySelector('text').setAttribute('fill', getContrastColor(customHighlight.value));
+                saveState();
+            }
+        }
+    });
+
     removeHighlightBtn.addEventListener('click', () => {
         if (selectedNode) {
             const nodeId = selectedNode.dataset.id;
@@ -364,21 +397,6 @@ function setupNodeMenu() {
                 selectedNode.querySelector('circle').setAttribute('fill', treeColor);
                 selectedNode.querySelector('text').setAttribute('fill', 'white');
                 showNotification('Highlight removed', 'success');
-                saveState();
-            }
-        }
-    });
-
-    customHighlight.addEventListener('input', () => {
-        if (selectedNode) {
-            const nodeId = selectedNode.dataset.id;
-            const node = findNodeById(treeData, nodeId);
-            if (node) {
-                node.highlight = {type: 'custom', color: customHighlight.value};
-                selectedNode.querySelector('circle').setAttribute('fill', customHighlight.value);
-
-                // Change text color based on contrast
-                selectedNode.querySelector('text').setAttribute('fill', getContrastColor(customHighlight.value));
                 saveState();
             }
         }
@@ -461,21 +479,30 @@ function showNotification(message, type = 'info', duration = 3000) {
 function calculateSVGDimensions(treeData) {
     let maxDepth = 0;
     let maxWidth = 0;
+    let minWidth = 0;
 
-    function traverse(node, depth) {
+    function traverse(node, depth, horizontalPosition) {
         maxDepth = Math.max(maxDepth, depth);
+        maxWidth = Math.max(maxWidth, horizontalPosition);
+        minWidth = Math.min(minWidth, horizontalPosition);
 
-        if (node.children.length === 0) {
-            maxWidth++;
-        } else {
-            node.children.forEach(child => traverse(child, depth + 1));
-        }
+        const childrenCount = node.children.length;
+        const totalChildrenWidth = (childrenCount - 1) * HORIZONTAL_SPACING;
+        const startPosition = horizontalPosition - totalChildrenWidth / 2;
+
+        node.children.forEach((child, index) => {
+            const childPosition = startPosition + index * HORIZONTAL_SPACING;
+            traverse(child, depth + 1, childPosition);
+        });
     }
 
-    traverse(treeData, 0);
+    traverse(treeData, 0, 0);
 
-    const height = maxDepth + TOP_MARGIN + BOTTOM_MARGIN + NODE_RADIUS * 2 + VERTICAL_SPACING * maxDepth;
-    const width = maxWidth * HORIZONTAL_SPACING + NODE_RADIUS * 2;
+    // Calculate the width of the tree
+    maxWidth = Math.max(Math.abs(minWidth), maxWidth);
+
+    const width = maxWidth * 2 + NODE_RADIUS * 2 + HORIZONTAL_MARGIN * 2;
+    const height = (maxDepth + 1) * NODE_RADIUS * 2 + TOP_MARGIN + BOTTOM_MARGIN + maxDepth * VERTICAL_SPACING / 2;
 
     return {width, height};
 }
@@ -484,76 +511,131 @@ function initializeTree() {
     const svg = document.getElementById('tree-svg');
     const container = document.getElementById('tree-container');
 
-    // Set SVG viewBox to match container size
-    function updateSVGViewBox() {
-        const dimensions = calculateSVGDimensions(treeData);
-        svg.setAttribute('viewBox', `0 0 ${dimensions.width} ${dimensions.height}`);
-        container.style.width = `${dimensions.width}px`;
-        container.style.height = `${dimensions.height}px`;
-
-        // Update root node position
-        treeData.x = dimensions.width / 2;
-        treeData.y = TOP_MARGIN + NODE_RADIUS;
-
-        // Clear existing tree and re-render
-        svg.innerHTML = '';
-        renderTree(treeData, svg);
-    }
-
     // Update viewBox on window resize
     window.addEventListener('resize', updateSVGViewBox);
-    updateSVGViewBox();
 
-    if (treeData) {
-        svg.innerHTML = ''; // Clear existing tree
-        renderTree(treeData, svg);
-    } else {
+    if (!treeData) {
         treeData = {
             id: Date.now(),
             text: '1',
-            x: svg.viewBox.baseVal.width / 2,
-            y: svg.viewBox.baseVal.height / 2,
+            x: 0,
+            y: 0,
             children: [],
             highlight: null
         };
-        svg.innerHTML = ''; // Clear existing tree
-        renderTree(treeData, svg);
     }
 
+    updateSVGViewBox(svg, container);
     saveState();
 }
 
-function renderTree(node, parentElement, depth = 0, index = 0, siblings = 1) {
-    const dimensions = calculateSVGDimensions(treeData);
-    const x = (index + 1) * (dimensions.width / (siblings + 1));
-    const y = TOP_MARGIN + (depth + 1) * VERTICAL_SPACING;
+function updateTreeLayout() {
+    const svg = document.getElementById('tree-svg');
+    const container = document.getElementById('tree-container');
 
+    updateSVGViewBox(svg, container);
+}
+
+function updateSVGViewBox(svg, container) {
+    const dimensions = calculateSVGDimensions(treeData);
+    svg.setAttribute('viewBox', `0 0 ${dimensions.width} ${dimensions.height}`);
+    container.style.width = `${dimensions.width}px`;
+    container.style.height = `${dimensions.height}px`;
+
+    // Update root node position
+    treeData.x = dimensions.width / 2;
+    treeData.y = TOP_MARGIN + NODE_RADIUS;
+
+    // Update all node positions
+    updateNodePositions(treeData, treeData.x, treeData.y, 0);
+
+    // Clear existing tree
+    svg.innerHTML = '';
+
+    // Create and add the mask
+    const mask = createSVGMask(svg);
+
+    // Render the tree with the mask
+    renderTree(treeData, svg, mask);
+}
+
+function updateNodePositions(node, x, y, depth) {
+    node.x = x;
+    node.y = y;
+
+    if (node.children.length > 0) {
+        const childrenWidth = (node.children.length - 1) * HORIZONTAL_SPACING;
+        let startX = x - childrenWidth / 2;
+
+        node.children.forEach((child, index) => {
+            const childX = startX + index * HORIZONTAL_SPACING;
+            const childY = y + VERTICAL_SPACING;
+            updateNodePositions(child, childX, childY, depth + 1);
+        });
+    }
+}
+
+function createSVGMask(svg) {
+    const mask = document.createElementNS('http://www.w3.org/2000/svg', 'mask');
+    mask.setAttribute('id', 'nodeMask');
+
+    const maskRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    maskRect.setAttribute('x', '0');
+    maskRect.setAttribute('y', '0');
+    maskRect.setAttribute('width', '100%');
+    maskRect.setAttribute('height', '100%');
+    maskRect.setAttribute('fill', 'white');
+    mask.appendChild(maskRect);
+
+    svg.appendChild(mask);
+    return mask;
+}
+
+function addNodeToMask(mask, x, y, radius) {
+    const maskCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    maskCircle.setAttribute('cx', x.toString());
+    maskCircle.setAttribute('cy', y.toString());
+    maskCircle.setAttribute('r', (radius + 2).toString()); // Slightly larger than the node
+    maskCircle.setAttribute('fill', 'black');
+    mask.appendChild(maskCircle);
+}
+
+function renderTree(node, parentElement, mask) {
+    // Create a group for this node and its children
+    const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    parentElement.appendChild(nodeGroup);
+
+    // Add this node to the mask
+    addNodeToMask(mask, node.x, node.y, NODE_RADIUS);
+
+    // Draw lines to children first, with the mask applied
+    node.children.forEach((child) => {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', node.x.toString());
+        line.setAttribute('y1', node.y.toString());
+        line.setAttribute('x2', child.x.toString());
+        line.setAttribute('y2', child.y.toString());
+        line.setAttribute('stroke', '#666');
+        line.setAttribute('stroke-width', '2');
+        line.setAttribute('mask', 'url(#nodeMask)');
+        nodeGroup.appendChild(line);
+    });
+
+    // Then draw the node
     const nodeElement = createNode(node.text, node.x, node.y, node.id);
     let color = treeColor;
     if (node.highlight) {
         color = node.highlight.type === 'custom' ? node.highlight.color : highlightColors[node.highlight.index];
-        nodeElement.querySelector('circle').setAttribute('fill', color);
     }
+    nodeElement.querySelector('circle').setAttribute('fill', color);
     nodeElement.querySelector('text').setAttribute('fill', getContrastColor(color));
     nodeElement.querySelector('text').setAttribute('font-size', '40px');
 
-    parentElement.appendChild(nodeElement);
+    nodeGroup.appendChild(nodeElement);
 
-    // Draw lines to children
-    node.children.forEach((child, childIndex) => {
-        const childX = (childIndex + 1) * (dimensions.width / (node.children.length + 1));
-        const childY = TOP_MARGIN + (depth + 2) * VERTICAL_SPACING;
-
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', x.toString());
-        line.setAttribute('y1', y.toString());
-        line.setAttribute('x2', childX.toString());
-        line.setAttribute('y2', childY.toString());
-        line.setAttribute('stroke', '#666');
-        line.setAttribute('stroke-width', '2');
-        parentElement.appendChild(line);
-
-        renderTree(child, parentElement, depth + 1, childIndex, node.children.length);
+    // Recursively render children
+    node.children.forEach((child) => {
+        renderTree(child, nodeGroup, mask);
     });
 }
 
