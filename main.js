@@ -221,11 +221,9 @@ function setupResetButtons() {
     });
 
     resetTreeBtn.addEventListener('click', () => {
-        treeData = {
-            ...DEFAULT_TREE_DATA,
-            x: document.getElementById('tree-svg').viewBox.baseVal.width / 2,
-            y: document.getElementById('tree-svg').viewBox.baseVal.height / 2
-        };
+        treeData = JSON.parse(JSON.stringify(DEFAULT_TREE_DATA));
+        treeData.x = document.getElementById('tree-svg').viewBox.baseVal.width / 2;
+        treeData.y = document.getElementById('tree-svg').viewBox.baseVal.height / 2;
         initializeTree();
         saveState();
         showNotification('Tree reset to default', 'success');
@@ -236,11 +234,9 @@ function setupResetButtons() {
         document.getElementById('scale-factor').value = 2;
         resetNodeColors();
         highlightColors = [...DEFAULT_HIGHLIGHT_COLORS];
-        treeData = {
-            ...DEFAULT_TREE_DATA,
-            x: document.getElementById('tree-svg').viewBox.baseVal.width / 2,
-            y: document.getElementById('tree-svg').viewBox.baseVal.height / 2
-        };
+        treeData = JSON.parse(JSON.stringify(DEFAULT_TREE_DATA));
+        treeData.x = document.getElementById('tree-svg').viewBox.baseVal.width / 2;
+        treeData.y = document.getElementById('tree-svg').viewBox.baseVal.height / 2;
         updateHighlightButtonColors();
         updateGlobalColorPickers();
         initializeTree();
@@ -538,9 +534,21 @@ function updateTreeLayout() {
 
 function updateSVGViewBox(svg, container) {
     const dimensions = calculateSVGDimensions(treeData);
+    svg.setAttribute('width', dimensions.width);
+    svg.setAttribute('height', dimensions.height);
     svg.setAttribute('viewBox', `0 0 ${dimensions.width} ${dimensions.height}`);
-    container.style.width = `${dimensions.width}px`;
-    container.style.height = `${dimensions.height}px`;
+
+    const containerWidth = Math.min(dimensions.width, window.innerWidth * 0.8);
+    container.style.width = `${containerWidth}px`;
+
+    const containerHeight = container.clientHeight;
+    const leftOffset = Math.max(0, (containerWidth - dimensions.width) / 2);
+    const topOffset = Math.max(0, (containerHeight - dimensions.height) / 2);
+    svg.style.marginLeft = `${leftOffset}px`;
+    svg.style.marginTop = `${topOffset}px`;
+
+    treeData.x = dimensions.width / 2;
+    treeData.y = TOP_MARGIN + NODE_RADIUS;
 
     // Update root node position
     treeData.x = dimensions.width / 2;
@@ -575,6 +583,29 @@ function updateNodePositions(node, x, y, depth) {
     }
 }
 
+function calculateIntersectionPoint(x1, y1, x2, y2, cx, cy, r) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const a = dx * dx + dy * dy;
+    const b = 2 * (dx * (x1 - cx) + dy * (y1 - cy));
+    const c = (x1 - cx) * (x1 - cx) + (y1 - cy) * (y1 - cy) - r * r;
+    const discriminant = b * b - 4 * a * c;
+
+    if (discriminant < 0) {
+        return null;
+    }
+
+    const t1 = (-b + Math.sqrt(discriminant)) / (2 * a);
+    const t2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+    const t = 0 <= t1 && t1 <= 1 ? t1 : (0 <= t2 && t2 <= 1 ? t2 : null);
+
+    if (t === null) {
+        return null;
+    }
+
+    return {x: x1 + t * dx, y: y1 + t * dy};
+}
+
 function createSVGMask(svg) {
     const mask = document.createElementNS('http://www.w3.org/2000/svg', 'mask');
     mask.setAttribute('id', 'nodeMask');
@@ -595,33 +626,56 @@ function addNodeToMask(mask, x, y, radius) {
     const maskCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     maskCircle.setAttribute('cx', x.toString());
     maskCircle.setAttribute('cy', y.toString());
-    maskCircle.setAttribute('r', (radius + 2).toString()); // Slightly larger than the node
+    maskCircle.setAttribute('r', radius.toString());
     maskCircle.setAttribute('fill', 'black');
     mask.appendChild(maskCircle);
 }
 
 function renderTree(node, parentElement, mask) {
-    // Create a group for this node and its children
     const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     parentElement.appendChild(nodeGroup);
 
     // Add this node to the mask
     addNodeToMask(mask, node.x, node.y, NODE_RADIUS);
 
-    // Draw lines to children first, with the mask applied
+    // Draw lines to children
+    const linesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const isSingleChild = node.children.length === 1;
+    if (!isSingleChild) {
+        linesGroup.setAttribute('mask', 'url(#nodeMask)');
+    }
+    nodeGroup.appendChild(linesGroup);
+
+    let lineColor = borderColor === 'transparent' ? document.getElementById('border-color').value : borderColor;
+
     node.children.forEach((child) => {
+        let x1 = node.x, y1 = node.y, x2 = child.x, y2 = child.y;
+
+        const isSingleChild = node.children.length === 1;
+
+        if (isSingleChild) {
+            const startPoint = calculateIntersectionPoint(node.x, node.y, child.x, child.y, node.x, node.y, NODE_RADIUS);
+            const endPoint = calculateIntersectionPoint(node.x, node.y, child.x, child.y, child.x, child.y, NODE_RADIUS);
+
+            if (startPoint && endPoint) {
+                x1 = startPoint.x;
+                y1 = startPoint.y;
+                x2 = endPoint.x;
+                y2 = endPoint.y;
+            }
+        }
+
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', node.x.toString());
-        line.setAttribute('y1', node.y.toString());
-        line.setAttribute('x2', child.x.toString());
-        line.setAttribute('y2', child.y.toString());
-        line.setAttribute('stroke', '#666');
+        line.setAttribute('x1', x1.toString());
+        line.setAttribute('y1', y1.toString());
+        line.setAttribute('x2', x2.toString());
+        line.setAttribute('y2', y2.toString());
+        line.setAttribute('stroke', lineColor);
         line.setAttribute('stroke-width', '2');
-        line.setAttribute('mask', 'url(#nodeMask)');
-        nodeGroup.appendChild(line);
+        linesGroup.appendChild(line);
     });
 
-    // Then draw the node
+    // Draw the node
     const nodeElement = createNode(node.text, node.x, node.y, node.id);
     let color = treeColor;
     if (node.highlight) {
@@ -702,7 +756,8 @@ function updateAllNodesHighlightColor(colorIndex, newColor) {
         updateNodeColor(treeData);
         const svg = document.getElementById('tree-svg');
         svg.innerHTML = ''; // Clear existing tree
-        renderTree(treeData, svg);
+        const mask = createSVGMask(svg);
+        renderTree(treeData, svg, mask);
     }
 }
 
