@@ -13,9 +13,8 @@ const DEFAULT_TREE_DATA = {
 const NODE_RADIUS = 50;
 const VERTICAL_SPACING = 150;
 const HORIZONTAL_SPACING = 150;
-const TOP_MARGIN = 30;
-const BOTTOM_MARGIN = 30;
-const HORIZONTAL_MARGIN = 30;
+const VERTICAL_MARGIN = 50;
+const HORIZONTAL_MARGIN = 50;
 
 let selectedNode = null;
 let containerBackgroundColor = DEFAULT_CONTAINER_BACKGROUND_COLOR;
@@ -27,7 +26,7 @@ let treeData = null;
 // <------------------------Initialization------------------------>
 document.addEventListener('DOMContentLoaded', () => {
     loadState();
-    initializeTree();
+    updateTreeLayout();
     setupEventListeners();
     setupNodeMenu();
     setupGlobalColorPickers();
@@ -69,7 +68,6 @@ function loadState() {
     if (savedBorderColor) {
         if (noBorder === 'true') {
             borderColor = 'transparent';
-            document.getElementById('border-transparent').checked = true;
             document.getElementById('border-color').value = DEFAULT_BORDER_COLOR;
             document.getElementById('no-node-border').checked = true;
         } else {
@@ -151,7 +149,7 @@ function setupEventListeners() {
             if (borderColorSameAsTextCheckbox.checked) {
                 borderColor = getContrastColor(treeColor);
             }
-            initializeTree();
+            updateTreeLayout();
             saveState();
         }
     });
@@ -162,15 +160,13 @@ function setupEventListeners() {
         } else {
             treeColor = nodeColorPicker.value;
         }
-        initializeTree();
-        saveState();
+        updateTreeLayout();
     });
 
     borderColorPicker.addEventListener('input', () => {
         if (!noBorderCheckbox.checked && !borderColorSameAsTextCheckbox.checked) {
             borderColor = borderColorPicker.value;
-            initializeTree();
-            saveState();
+            updateTreeLayout();
         }
     });
 
@@ -184,8 +180,7 @@ function setupEventListeners() {
                 borderColor = borderColorPicker.value;
             }
         }
-        initializeTree();
-        saveState();
+        updateTreeLayout();
     });
 
     borderColorSameAsTextCheckbox.addEventListener('change', () => {
@@ -196,8 +191,7 @@ function setupEventListeners() {
         } else {
             borderColor = borderColorPicker.value;
         }
-        initializeTree();
-        saveState();
+        updateTreeLayout();
     });
 
     exportTreeButton.addEventListener('click', exportTreeAsPNG);
@@ -224,8 +218,7 @@ function setupResetButtons() {
         treeData = JSON.parse(JSON.stringify(DEFAULT_TREE_DATA));
         treeData.x = document.getElementById('tree-svg').viewBox.baseVal.width / 2;
         treeData.y = document.getElementById('tree-svg').viewBox.baseVal.height / 2;
-        initializeTree();
-        saveState();
+        updateTreeLayout();
         showNotification('Tree reset to default', 'success');
     });
 
@@ -239,8 +232,7 @@ function setupResetButtons() {
         treeData.y = document.getElementById('tree-svg').viewBox.baseVal.height / 2;
         updateHighlightButtonColors();
         updateGlobalColorPickers();
-        initializeTree();
-        saveState();
+        updateTreeLayout();
         showNotification('All settings reset to default', 'success');
     });
 }
@@ -340,7 +332,6 @@ function setupNodeMenu() {
                 }
                 parentNode.children.push(newChild);
                 updateTreeLayout();
-                saveState();
                 showNotification('Child node added', 'success');
             }
         }
@@ -498,12 +489,12 @@ function calculateSVGDimensions(treeData) {
     maxWidth = Math.max(Math.abs(minWidth), maxWidth);
 
     const width = maxWidth * 2 + NODE_RADIUS * 2 + HORIZONTAL_MARGIN * 2;
-    const height = (maxDepth + 1) * NODE_RADIUS * 2 + TOP_MARGIN + BOTTOM_MARGIN + maxDepth * VERTICAL_SPACING / 2;
+    const height = (maxDepth + 1) * NODE_RADIUS * 2 + VERTICAL_MARGIN * 2 + maxDepth * VERTICAL_MARGIN
 
     return {width, height};
 }
 
-function initializeTree() {
+function updateTreeLayout() {
     const svg = document.getElementById('tree-svg');
     const container = document.getElementById('tree-container');
 
@@ -525,13 +516,6 @@ function initializeTree() {
     saveState();
 }
 
-function updateTreeLayout() {
-    const svg = document.getElementById('tree-svg');
-    const container = document.getElementById('tree-container');
-
-    updateSVGViewBox(svg, container);
-}
-
 function updateSVGViewBox(svg, container) {
     const dimensions = calculateSVGDimensions(treeData);
     svg.setAttribute('width', dimensions.width);
@@ -541,18 +525,9 @@ function updateSVGViewBox(svg, container) {
     const containerWidth = Math.min(dimensions.width, window.innerWidth * 0.8);
     container.style.width = `${containerWidth}px`;
 
-    const containerHeight = container.clientHeight;
-    const leftOffset = Math.max(0, (containerWidth - dimensions.width) / 2);
-    const topOffset = Math.max(0, (containerHeight - dimensions.height) / 2);
-    svg.style.marginLeft = `${leftOffset}px`;
-    svg.style.marginTop = `${topOffset}px`;
-
-    treeData.x = dimensions.width / 2;
-    treeData.y = TOP_MARGIN + NODE_RADIUS;
-
     // Update root node position
     treeData.x = dimensions.width / 2;
-    treeData.y = TOP_MARGIN + NODE_RADIUS;
+    treeData.y = VERTICAL_MARGIN + NODE_RADIUS;
 
     // Update all node positions
     updateNodePositions(treeData, treeData.x, treeData.y, 0);
@@ -651,8 +626,6 @@ function renderTree(node, parentElement, mask) {
     node.children.forEach((child) => {
         let x1 = node.x, y1 = node.y, x2 = child.x, y2 = child.y;
 
-        const isSingleChild = node.children.length === 1;
-
         if (isSingleChild) {
             const startPoint = calculateIntersectionPoint(node.x, node.y, child.x, child.y, node.x, node.y, NODE_RADIUS);
             const endPoint = calculateIntersectionPoint(node.x, node.y, child.x, child.y, child.x, child.y, NODE_RADIUS);
@@ -676,15 +649,7 @@ function renderTree(node, parentElement, mask) {
     });
 
     // Draw the node
-    const nodeElement = createNode(node.text, node.x, node.y, node.id);
-    let color = treeColor;
-    if (node.highlight) {
-        color = node.highlight.type === 'custom' ? node.highlight.color : highlightColors[node.highlight.index];
-    }
-    nodeElement.querySelector('circle').setAttribute('fill', color);
-    nodeElement.querySelector('text').setAttribute('fill', getContrastColor(color));
-    nodeElement.querySelector('text').setAttribute('font-size', '40px');
-
+    const nodeElement = renderNodeElement(node);
     nodeGroup.appendChild(nodeElement);
 
     // Recursively render children
@@ -693,22 +658,32 @@ function renderTree(node, parentElement, mask) {
     });
 }
 
-function createNode(text, x, y, id) {
+function renderNodeElement(node) {
+    const {id, text, x, y} = node;
     const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     nodeGroup.setAttribute('transform', `translate(${x}, ${y})`);
     nodeGroup.dataset.id = id;
 
+    let nodeColor = treeColor;
+    if (node.highlight) {
+        nodeColor = node.highlight.type === 'custom' ? node.highlight.color : highlightColors[node.highlight.index];
+    }
+
+    let strokeColor = borderColor === 'transparent' ? nodeColor : borderColor;
+
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('r', NODE_RADIUS.toString());
-    circle.setAttribute('fill', treeColor);
-    circle.setAttribute('stroke', borderColor);
+    circle.setAttribute('fill', nodeColor);
+    circle.setAttribute('stroke', strokeColor);
     circle.setAttribute('stroke-width', '2.5');
+
+    let textFill = getContrastColor(nodeColor);
 
     const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     textElement.textContent = text;
     textElement.setAttribute('text-anchor', 'middle');
     textElement.setAttribute('dominant-baseline', 'central');
-    textElement.setAttribute('fill', 'white');
+    textElement.setAttribute('fill', textFill);
     textElement.setAttribute('font-family', 'Arial, sans-serif');
     textElement.setAttribute('font-size', '40px');
 
