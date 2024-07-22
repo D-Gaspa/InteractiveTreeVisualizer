@@ -42,7 +42,6 @@ export function drawDebugLineX(svg, message, color, x) {
     svg.appendChild(debugLabel);
 }
 
-
 function drawDebugLines(svg) {
     drawDebugLineY(svg, 'Begin', 'red', 0);
     drawDebugLineY(svg, 'Top Margin', 'blue', VERTICAL_MARGIN);

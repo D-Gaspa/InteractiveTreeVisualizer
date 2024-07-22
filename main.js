@@ -356,6 +356,9 @@ function setupNodeMenu() {
 
                     // Change text color based on contrast
                     selectedNode.querySelector('text').setAttribute('fill', getContrastColor(highlightColors[index]));
+
+                    // Update the remove highlight button color to indicate that a highlight is present
+                    removeHighlightBtn.style.backgroundColor = '#dc3545';
                     saveState();
                 }
             }
@@ -372,6 +375,9 @@ function setupNodeMenu() {
 
                 // Change text color based on contrast
                 selectedNode.querySelector('text').setAttribute('fill', getContrastColor(customHighlight.value));
+
+                // Update the remove highlight button color to indicate that a highlight is present
+                removeHighlightBtn.style.backgroundColor = '#dc3545';
                 saveState();
             }
         }
@@ -391,6 +397,10 @@ function setupNodeMenu() {
                 node.highlight = null;
                 selectedNode.querySelector('circle').setAttribute('fill', treeColor);
                 selectedNode.querySelector('text').setAttribute('fill', 'white');
+
+                // Update the remove highlight button color to a disabled state
+                removeHighlightBtn.style.backgroundColor = '#4a4a4a';
+
                 showNotification('Highlight removed', 'success');
                 saveState();
             }
@@ -445,6 +455,7 @@ function showNodeMenu(node) {
 
     const nodeValue = document.getElementById('node-value');
     const customHighlight = document.getElementById('custom-highlight');
+    const removeHighlightBtn = document.getElementById('remove-highlight');
     const nodeId = node.dataset.id;
     const treeNode = findNodeById(treeData, nodeId);
 
@@ -455,10 +466,13 @@ function showNodeMenu(node) {
         if (treeNode.highlight.type === 'custom') {
             customHighlight.value = treeNode.highlight.color;
         } else {
-            customHighlight.value = '#000000';
+            customHighlight.value = '#091E39';
         }
+        removeHighlightBtn.style.backgroundColor = '#dc3545';
     } else {
-        customHighlight.value = '#000000';
+        customHighlight.value = '#091E39';
+        // If there isn't a highlight, change the color of the delete highlight button to a disabled state
+        removeHighlightBtn.style.backgroundColor = '#4a4a4a';
     }
 }
 
@@ -493,37 +507,17 @@ function showNotification(message, type = 'info', duration = 3000) {
     }, duration);
 }
 
-// <------------------------Tree Operations------------------------>
-function calculateSVGDimensions(treeData) {
-    let maxDepth = 0;
-    let maxWidth = 0;
-    let minWidth = 0;
-
-    function traverse(node, depth, horizontalPosition) {
-        maxDepth = Math.max(maxDepth, depth);
-        maxWidth = Math.max(maxWidth, horizontalPosition);
-        minWidth = Math.min(minWidth, horizontalPosition);
-
-        const childrenCount = node.children.length;
-        const totalChildrenWidth = (childrenCount - 1) * HORIZONTAL_SPACING;
-        const startPosition = horizontalPosition - totalChildrenWidth / 2;
-
-        node.children.forEach((child, index) => {
-            const childPosition = startPosition + index * HORIZONTAL_SPACING;
-            traverse(child, depth + 1, childPosition);
-        });
+function reapplySelection() {
+    if (selectedNode) {
+        const nodeId = selectedNode.dataset.id;
+        const node = document.querySelector(`.tree-node[data-id="${nodeId}"]`);
+        if (node) {
+            selectNode(node);
+        }
     }
-
-    traverse(treeData, 0, 0);
-
-    // Calculate the width of the tree
-    maxWidth = Math.max(Math.abs(minWidth), maxWidth);
-
-    const width = maxWidth * 2 + NODE_RADIUS * 2 + HORIZONTAL_MARGIN * 2;
-    const height = (maxDepth + 1) * NODE_RADIUS * 2 + VERTICAL_MARGIN * 2 + maxDepth * VERTICAL_MARGIN
-
-    return {width, height};
 }
+
+// <------------------------Tree Operations------------------------>
 
 function updateTreeLayout() {
     if (!treeData) {
@@ -538,23 +532,27 @@ function updateTreeLayout() {
     }
 
     updateSVGViewBox();
+
+    // Reapply selected node (if any)
+    reapplySelection();
+
     saveState();
 }
 
 function updateSVGViewBox() {
     const svg = document.getElementById('tree-svg');
     const container = document.getElementById('tree-container');
-    const dimensions = calculateSVGDimensions(treeData);
+    const {width, height, leftmostPosition, rightmostPosition} = calculateSVGDimensions(treeData);
 
-    svg.setAttribute('width', dimensions.width.toString());
-    svg.setAttribute('height', dimensions.height.toString());
-    svg.setAttribute('viewBox', `0 0 ${dimensions.width} ${dimensions.height}`);
+    svg.setAttribute('width', width.toString());
+    svg.setAttribute('height', height.toString());
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
-    const containerWidth = Math.min(dimensions.width, window.innerWidth * 0.8);
+    const containerWidth = Math.min(width, window.innerWidth * 0.8);
     container.style.width = `${containerWidth}px`;
 
-    // Update root node position
-    treeData.x = dimensions.width / 2;
+    // Update root node position accounting for asymmetry
+    treeData.x = (width - (rightmostPosition - leftmostPosition)) / 2 - leftmostPosition;
     treeData.y = VERTICAL_MARGIN + NODE_RADIUS;
 
     // Update all node positions
@@ -568,6 +566,43 @@ function updateSVGViewBox() {
 
     // Render the tree with the mask
     renderTree(treeData, svg, mask);
+}
+
+function calculateSVGDimensions(treeData) {
+    let maxDepth = 0;
+    let leftmostPosition = 0;
+    let rightmostPosition = 0;
+
+    function traverse(node, depth, horizontalPosition) {
+        maxDepth = Math.max(maxDepth, depth);
+        leftmostPosition = Math.min(leftmostPosition, horizontalPosition);
+        rightmostPosition = Math.max(rightmostPosition, horizontalPosition);
+
+        const childrenCount = node.children.length;
+        const totalChildrenWidth = (childrenCount - 1) * HORIZONTAL_SPACING;
+        const startPosition = horizontalPosition - totalChildrenWidth / 2;
+
+        node.children.forEach((child, index) => {
+            const childPosition = startPosition + index * HORIZONTAL_SPACING;
+            traverse(child, depth + 1, childPosition);
+        });
+    }
+
+    traverse(treeData, 0, 0);
+
+    // Width:
+    // (rightmostPosition - leftmostPosition) = Distance from the centers of leftmost node to rightmost node
+    // NODE_RADIUS * 2 = Account for the left radius of the leftmost node and right radius of the rightmost node
+    // HORIZONTAL_MARGIN * 2 = Account for the margin on both sides
+    const width = rightmostPosition - leftmostPosition + NODE_RADIUS * 2 + HORIZONTAL_MARGIN * 2;
+
+    // Height:
+    // (maxDepth + 1) * NODE_RADIUS * 2 = Account for the height of all nodes
+    // VERTICAL_MARGIN * 2 = Account for the margin on both sides
+    // maxDepth * VERTICAL_MARGIN = Account for the vertical spacing between nodes
+    const height = (maxDepth + 1) * NODE_RADIUS * 2 + VERTICAL_MARGIN * 2 + maxDepth * VERTICAL_MARGIN
+
+    return {width, height, leftmostPosition, rightmostPosition};
 }
 
 function updateNodePositions(node, x, y, depth) {
