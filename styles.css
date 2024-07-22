@@ -169,6 +169,28 @@ input:focus {
     gap: 20px;
 }
 
+.tree-node {
+    transition: all 0.5s ease;
+}
+
+.tree-node:not(.selected).hover {
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5)) brightness(1.15);
+}
+
+.tree-node.selected circle {
+    stroke-width: 3.5;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+}
+
+.tree-node circle,
+.tree-node text {
+    transition: all 0.3s ease;
+}
+
+.tree-node.selected text {
+    font-weight: bold;
+}
+
 .node-menu {
     position: absolute;
     background-color: #333;

@@ -303,7 +303,13 @@ function setupNodeMenu() {
 
     document.addEventListener('click', (e) => {
         if (!nodeMenu.contains(e.target) && e.target.tagName !== 'circle') {
+            // Hide the node menu and deselect the node
             hideNodeMenu();
+
+            // Remove 'selected' class from all nodes
+            document.querySelectorAll('.tree-node').forEach(node => {
+                node.classList.remove('selected');
+            });
         }
     });
 
@@ -685,6 +691,7 @@ function renderNodeElement(node) {
     const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     nodeGroup.setAttribute('transform', `translate(${x}, ${y})`);
     nodeGroup.dataset.id = id;
+    nodeGroup.classList.add('tree-node');
 
     let nodeColor = treeColor;
     if (node.highlight) {
@@ -715,9 +722,30 @@ function renderNodeElement(node) {
     nodeGroup.addEventListener('click', (e) => {
         e.stopPropagation();
         showNodeMenu(nodeGroup);
+        selectNode(nodeGroup);
+    });
+
+    nodeGroup.addEventListener('mouseover', () => {
+        nodeGroup.classList.add('hover');
+        document.body.style.cursor = 'pointer';
+    });
+
+    nodeGroup.addEventListener('mouseout', () => {
+        nodeGroup.classList.remove('hover');
+        document.body.style.cursor = 'default';
     });
 
     return nodeGroup;
+}
+
+function selectNode(nodeGroup) {
+    // Remove 'selected' class from all nodes
+    document.querySelectorAll('.tree-node').forEach(node => {
+        node.classList.remove('selected');
+    });
+
+    // Add 'selected' class to the clicked node
+    nodeGroup.classList.add('selected');
 }
 
 function removeNodeFromTree(node, id) {
