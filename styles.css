@@ -181,6 +181,8 @@ input:focus {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    width: 200px;
+    height: 340px;
 }
 
 .node-menu.hidden {
@@ -203,7 +205,6 @@ input:focus {
 .node-menu input[type="text"] {
     background-color: #444;
     color: #fff;
-    border: 1px solid #666;
 }
 
 .highlight-section,
