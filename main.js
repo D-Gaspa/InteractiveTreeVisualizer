@@ -119,9 +119,11 @@ function setupEventListeners() {
     const containerTransparentCheckbox = document.getElementById('container-transparent-background');
     const exportTreeButton = document.getElementById('export-tree');
 
+    // Update the tree layout when the window is resized
+    window.addEventListener('resize', updateSVGViewBox);
+
     scaleFactorInput.addEventListener('input', () => {
         saveState()
-        // Full functionality to be implemented later
     });
 
     containerColorPicker.addEventListener('input', () => {
@@ -390,10 +392,11 @@ function setupNodeMenu() {
     });
 
     deleteNodeBtn.addEventListener('click', () => {
-        if (selectedNode && selectedNode.parentNode.childNodes.length > 1) {
+        if (selectedNode && selectedNode.dataset.id !== treeData.id.toString()) {
             const nodeId = selectedNode.dataset.id;
             removeNodeFromTree(treeData, nodeId);
             selectedNode.remove();
+            updateTreeLayout();
             hideNodeMenu();
             showNotification('Node deleted', 'success');
             saveState();
@@ -405,20 +408,42 @@ function setupNodeMenu() {
 
 function showNodeMenu(node) {
     const nodeMenu = document.getElementById('node-menu');
+    const rect = node.getBoundingClientRect();
+    let left = rect.right + window.scrollX;
+    let top = rect.top + window.scrollY + rect.height;
+
+    nodeMenu.classList.remove('hidden');
+
+    const menuWidth = nodeMenu.offsetWidth;
+    const menuHeight = nodeMenu.offsetHeight;
+    const screenWidth = window.innerWidth || document.documentElement.clientWidth;
+    const screenHeight = window.innerHeight || document.documentElement.clientHeight;
+
+    // Ensure the menu does not go off the horizontal edge of the screen
+    if (left < 20) {
+        left = 20; // Set a minimum value
+    } else if (left + menuWidth + 20 > screenWidth) {
+        left = screenWidth - menuWidth - 20;
+    }
+
+    // Ensure the menu does not go off the vertical edge of the screen
+    if (top < 20) {
+        top = 20; // Set a minimum value
+    } else if (top + menuHeight + 20 > screenHeight) {
+        top = screenHeight - menuHeight - 20;
+    }
+
+    nodeMenu.style.position = 'absolute';
+    nodeMenu.style.left = `${left}px`;
+    nodeMenu.style.top = `${top}px`;
+
     const nodeValue = document.getElementById('node-value');
     const customHighlight = document.getElementById('custom-highlight');
-
-    selectedNode = node;
     const nodeId = node.dataset.id;
     const treeNode = findNodeById(treeData, nodeId);
 
+    selectedNode = node;
     nodeValue.value = treeNode.text;
-
-    const rect = node.getBoundingClientRect();
-    nodeMenu.style.left = `${rect.right + 10}px`;
-    nodeMenu.style.top = `${rect.top}px`;
-
-    nodeMenu.classList.remove('hidden');
 
     if (treeNode.highlight) {
         if (treeNode.highlight.type === 'custom') {
@@ -495,12 +520,6 @@ function calculateSVGDimensions(treeData) {
 }
 
 function updateTreeLayout() {
-    const svg = document.getElementById('tree-svg');
-    const container = document.getElementById('tree-container');
-
-    // Update viewBox on window resize
-    window.addEventListener('resize', updateSVGViewBox);
-
     if (!treeData) {
         treeData = {
             id: Date.now(),
@@ -512,14 +531,17 @@ function updateTreeLayout() {
         };
     }
 
-    updateSVGViewBox(svg, container);
+    updateSVGViewBox();
     saveState();
 }
 
-function updateSVGViewBox(svg, container) {
+function updateSVGViewBox() {
+    const svg = document.getElementById('tree-svg');
+    const container = document.getElementById('tree-container');
     const dimensions = calculateSVGDimensions(treeData);
-    svg.setAttribute('width', dimensions.width);
-    svg.setAttribute('height', dimensions.height);
+
+    svg.setAttribute('width', dimensions.width.toString());
+    svg.setAttribute('height', dimensions.height.toString());
     svg.setAttribute('viewBox', `0 0 ${dimensions.width} ${dimensions.height}`);
 
     const containerWidth = Math.min(dimensions.width, window.innerWidth * 0.8);
