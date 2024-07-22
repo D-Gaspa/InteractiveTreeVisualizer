@@ -22,6 +22,7 @@ let treeColor = DEFAULT_TREE_COLOR;
 let borderColor = DEFAULT_BORDER_COLOR;
 let highlightColors = DEFAULT_HIGHLIGHT_COLORS;
 let treeData = null;
+let nodesByDepth = {};
 
 // <------------------------Initialization------------------------>
 document.addEventListener('DOMContentLoaded', () => {
@@ -217,10 +218,7 @@ function setupResetButtons() {
     });
 
     resetTreeBtn.addEventListener('click', () => {
-        treeData = JSON.parse(JSON.stringify(DEFAULT_TREE_DATA));
-        treeData.x = document.getElementById('tree-svg').viewBox.baseVal.width / 2;
-        treeData.y = document.getElementById('tree-svg').viewBox.baseVal.height / 2;
-        updateTreeLayout();
+        resetTreeStructure();
         showNotification('Tree reset to default', 'success');
     });
 
@@ -229,14 +227,19 @@ function setupResetButtons() {
         document.getElementById('scale-factor').value = 2;
         resetNodeColors();
         highlightColors = [...DEFAULT_HIGHLIGHT_COLORS];
-        treeData = JSON.parse(JSON.stringify(DEFAULT_TREE_DATA));
-        treeData.x = document.getElementById('tree-svg').viewBox.baseVal.width / 2;
-        treeData.y = document.getElementById('tree-svg').viewBox.baseVal.height / 2;
+        resetTreeStructure();
         updateHighlightButtonColors();
         updateGlobalColorPickers();
-        updateTreeLayout();
         showNotification('All settings reset to default', 'success');
     });
+}
+
+function resetTreeStructure() {
+    treeData = JSON.parse(JSON.stringify(DEFAULT_TREE_DATA));
+    treeData.x = document.getElementById('tree-svg').viewBox.baseVal.width / 2;
+    treeData.y = document.getElementById('tree-svg').viewBox.baseVal.height / 2;
+    nodesByDepth = {};
+    updateTreeLayout();
 }
 
 function resetExportColors() {
@@ -376,6 +379,11 @@ function setupNodeMenu() {
                 // Change text color based on contrast
                 selectedNode.querySelector('text').setAttribute('fill', getContrastColor(customHighlight.value));
 
+                // Change the border color if the 'same as text' option is selected
+                if (document.getElementById('node-border-same-as-text').checked) {
+                    selectedNode.querySelector('circle').setAttribute('stroke', getContrastColor(customHighlight.value));
+                }
+
                 // Update the remove highlight button color to indicate that a highlight is present
                 removeHighlightBtn.style.backgroundColor = '#dc3545';
                 saveState();
@@ -396,7 +404,8 @@ function setupNodeMenu() {
 
                 node.highlight = null;
                 selectedNode.querySelector('circle').setAttribute('fill', treeColor);
-                selectedNode.querySelector('text').setAttribute('fill', 'white');
+                selectedNode.querySelector('circle').setAttribute('stroke', borderColor);
+                selectedNode.querySelector('text').setAttribute('fill', getContrastColor(treeColor));
 
                 // Update the remove highlight button color to a disabled state
                 removeHighlightBtn.style.backgroundColor = '#4a4a4a';
@@ -471,7 +480,6 @@ function showNodeMenu(node) {
         removeHighlightBtn.style.backgroundColor = '#dc3545';
     } else {
         customHighlight.value = '#091E39';
-        // If there isn't a highlight, change the color of the delete highlight button to a disabled state
         removeHighlightBtn.style.backgroundColor = '#4a4a4a';
     }
 }
@@ -540,8 +548,20 @@ function updateTreeLayout() {
 }
 
 function updateSVGViewBox() {
+    // Reset nodesByDepth for each update
+    nodesByDepth = {};
+
     const svg = document.getElementById('tree-svg');
     const container = document.getElementById('tree-container');
+
+    // Start with the root node in the center
+    const initialX = 0;
+    const initialY = VERTICAL_MARGIN + NODE_RADIUS;
+
+    // Update all node positions
+    updateNodePositions(treeData, initialX, initialY, 0);
+
+    // Calculate actual dimensions based on node positions
     const {width, height, leftmostPosition, rightmostPosition} = calculateSVGDimensions(treeData);
 
     svg.setAttribute('width', width.toString());
@@ -551,12 +571,16 @@ function updateSVGViewBox() {
     const containerWidth = Math.min(width, window.innerWidth * 0.8);
     container.style.width = `${containerWidth}px`;
 
-    // Update root node position accounting for asymmetry
-    treeData.x = (width - (rightmostPosition - leftmostPosition)) / 2 - leftmostPosition;
-    treeData.y = VERTICAL_MARGIN + NODE_RADIUS;
+    // Calculate the horizontal offset to center the entire tree
+    const horizontalOffset = (width - (rightmostPosition - leftmostPosition)) / 2 - leftmostPosition;
 
-    // Update all node positions
-    updateNodePositions(treeData, treeData.x, treeData.y, 0);
+    // Apply the offset to all nodes
+    function applyOffset(node) {
+        node.x += horizontalOffset;
+        node.children.forEach(applyOffset);
+    }
+
+    applyOffset(treeData);
 
     // Clear existing tree
     svg.innerHTML = '';
@@ -568,46 +592,36 @@ function updateSVGViewBox() {
     renderTree(treeData, svg, mask);
 }
 
-function calculateSVGDimensions(treeData) {
-    let maxDepth = 0;
-    let leftmostPosition = 0;
-    let rightmostPosition = 0;
+function calculateSVGDimensions(node) {
+    let minX = Infinity, maxX = -Infinity, maxY = -Infinity;
 
-    function traverse(node, depth, horizontalPosition) {
-        maxDepth = Math.max(maxDepth, depth);
-        leftmostPosition = Math.min(leftmostPosition, horizontalPosition);
-        rightmostPosition = Math.max(rightmostPosition, horizontalPosition);
+    function traverse(node) {
+        minX = Math.min(minX, node.x);
+        maxX = Math.max(maxX, node.x);
+        maxY = Math.max(maxY, node.y);
 
-        const childrenCount = node.children.length;
-        const totalChildrenWidth = (childrenCount - 1) * HORIZONTAL_SPACING;
-        const startPosition = horizontalPosition - totalChildrenWidth / 2;
-
-        node.children.forEach((child, index) => {
-            const childPosition = startPosition + index * HORIZONTAL_SPACING;
-            traverse(child, depth + 1, childPosition);
-        });
+        node.children.forEach(traverse);
     }
 
-    traverse(treeData, 0, 0);
+    traverse(node);
 
-    // Width:
-    // (rightmostPosition - leftmostPosition) = Distance from the centers of leftmost node to rightmost node
-    // NODE_RADIUS * 2 = Account for the left radius of the leftmost node and right radius of the rightmost node
-    // HORIZONTAL_MARGIN * 2 = Account for the margin on both sides
-    const width = rightmostPosition - leftmostPosition + NODE_RADIUS * 2 + HORIZONTAL_MARGIN * 2;
+    const width = maxX - minX + NODE_RADIUS * 2 + HORIZONTAL_MARGIN * 2;
+    const height = maxY + NODE_RADIUS + VERTICAL_MARGIN * 2;
 
-    // Height:
-    // (maxDepth + 1) * NODE_RADIUS * 2 = Account for the height of all nodes
-    // VERTICAL_MARGIN * 2 = Account for the margin on both sides
-    // maxDepth * VERTICAL_MARGIN = Account for the vertical spacing between nodes
-    const height = (maxDepth + 1) * NODE_RADIUS * 2 + VERTICAL_MARGIN * 2 + maxDepth * VERTICAL_MARGIN
-
-    return {width, height, leftmostPosition, rightmostPosition};
+    return { width, height, leftmostPosition: minX, rightmostPosition: maxX };
 }
 
 function updateNodePositions(node, x, y, depth) {
     node.x = x;
     node.y = y;
+
+    // Initialize the array for this depth if it doesn't exist
+    if (!nodesByDepth[depth]) {
+        nodesByDepth[depth] = [];
+    }
+
+    // Add this node to the appropriate depth array
+    nodesByDepth[depth].push(node);
 
     if (node.children.length > 0) {
         const childrenWidth = (node.children.length - 1) * HORIZONTAL_SPACING;
@@ -617,6 +631,48 @@ function updateNodePositions(node, x, y, depth) {
             const childX = startX + index * HORIZONTAL_SPACING;
             const childY = y + VERTICAL_SPACING;
             updateNodePositions(child, childX, childY, depth + 1);
+        });
+    }
+
+    // After processing all children, check for collisions at this depth
+    if (depth > 0) { // Skip for root node
+        resolveCollisionsAtDepth(depth);
+    }
+}
+
+function resolveCollisionsAtDepth(depth) {
+    let nodes = nodesByDepth[depth];
+    if (!nodes || nodes.length <= 1) return;
+
+    nodes.sort((a, b) => a.x - b.x);
+
+    let needsAdjustment = false;
+    for (let i = 1; i < nodes.length; i++) {
+        if (nodes[i].x - nodes[i - 1].x < HORIZONTAL_SPACING) {
+            needsAdjustment = true;
+            break;
+        }
+    }
+
+    if (needsAdjustment) {
+        let totalWidth = (nodes.length - 1) * HORIZONTAL_SPACING;
+        let startX = nodes[0].x - totalWidth / 2;
+
+        nodes.forEach((node, index) => {
+            node.x = startX + index * HORIZONTAL_SPACING;
+            updateChildrenPositions(node);
+        });
+    }
+}
+
+function updateChildrenPositions(node) {
+    if (node.children.length > 0) {
+        const childrenWidth = (node.children.length - 1) * HORIZONTAL_SPACING;
+        let startX = node.x - childrenWidth / 2;
+
+        node.children.forEach((child, index) => {
+            child.x = startX + index * HORIZONTAL_SPACING;
+            updateChildrenPositions(child);
         });
     }
 }
