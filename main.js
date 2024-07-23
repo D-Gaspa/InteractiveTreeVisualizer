@@ -23,10 +23,12 @@ let borderColor = DEFAULT_BORDER_COLOR;
 let highlightColors = DEFAULT_HIGHLIGHT_COLORS;
 let treeData = null;
 let nodesByDepth = {};
+let MAX_COLLISION_ITERATIONS = 10;
 
 // <------------------------Initialization------------------------>
 document.addEventListener('DOMContentLoaded', () => {
     loadState();
+    // document.getElementById('reset-all').click();  // For debugging purposes
     updateTreeLayout();
     setupEventListeners();
     setupNodeMenu();
@@ -563,7 +565,7 @@ function updateSVGViewBox() {
 
     // Resolve collisions at each depth
     for (let depth in nodesByDepth) {
-        resolveCollisionsAtDepth(depth);
+        resolveCollisionsAtDepth(nodesByDepth[depth]);
     }
 
     // Calculate actual dimensions based on node positions
@@ -655,35 +657,109 @@ function positionChildNodes(parentNode, childDepth) {
     });
 }
 
-function resolveCollisionsAtDepth(depth) {
-    let nodes = nodesByDepth[depth];
+function resolveCollisionsAtDepth(nodes) {
     if (!nodes || nodes.length <= 1) return;
 
     nodes.sort((a, b) => a.x - b.x);
 
-    let collisionGroups = [];
-    let currentGroup = [nodes[0]];
+    let nodesByParent = groupNodesByParentAndSort(nodes);
 
-    for (let i = 1; i < nodes.length; i++) {
-        if (nodes[i].x - nodes[i-1].x < HORIZONTAL_SPACING) {
-            currentGroup.push(nodes[i]);
-        } else {
-            if (currentGroup.length > 1) {
-                collisionGroups.push(currentGroup);
+    let involvedParentsIDs = getFirstCollisionGroupParents(nodesByParent);
+
+    if (involvedParentsIDs.length < 1) {
+        return;
+    }
+
+    let involvedParents = involvedParentsIDs.map(id => findNodeById(treeData, id));
+
+    // Start of the while loop
+
+    let iteration = 0;
+    while (iteration < MAX_COLLISION_ITERATIONS) {
+        resolveChildCollisions(involvedParents);
+
+        // Check if there are still collisions after resolving
+        let updatedInvolvedParentsIDs = getFirstCollisionGroupParents(nodesByParent);
+
+        if (updatedInvolvedParentsIDs.length < 1) {
+            // No more collisions, exit the loop
+            break;
+        }
+
+        // If there are, check which parents were not in the previous group
+        let updatedInvolvedParents = updatedInvolvedParentsIDs.map(id => findNodeById(treeData, id));
+        let newParents = updatedInvolvedParents.filter(parent => !involvedParents.includes(parent));
+
+        // Add the new parents to the previous group
+        involvedParents.push(...newParents);
+
+        // Update nodesByParent for the next iteration
+        nodesByParent = groupNodesByParentAndSort(nodes);
+
+        iteration++;
+    }
+
+    if (iteration === MAX_COLLISION_ITERATIONS) {
+        showNotification('Could not resolve all collisions, some nodes may overlap', 'warning');
+    }
+}
+
+function groupNodesByParentAndSort(nodes) {
+    let nodesByParent = {};
+    nodes.forEach(node => {
+        let parent = findParentNode(treeData, node);
+        if (!nodesByParent[parent.id]) {
+            nodesByParent[parent.id] = [];
+        }
+        nodesByParent[parent.id].push(node);
+    });
+
+    // Sort nodes within each parent group
+    Object.values(nodesByParent).forEach(group => {
+        group.sort((a, b) => a.x - b.x);
+    });
+    return nodesByParent;
+}
+
+function getFirstCollisionGroupParents(nodesByParent) {
+    let parentIds = Object.keys(nodesByParent);
+    let involvedParents = new Set();
+
+    // Check for collisions between nodes of different parents
+    for (let i = 0; i < parentIds.length; i++) {
+        let currentParentId = parentIds[i];
+        let currentParentNodes = nodesByParent[currentParentId];
+        involvedParents.add(currentParentId);
+
+        for (let j = i + 1; j < parentIds.length; j++) {
+            let nextParentId = parentIds[j];
+            let nextParentNodes = nodesByParent[nextParentId];
+
+            // Check if the rightmost node of the current parent collides with the leftmost node of the next parent
+            if (nextParentNodes[0].x - currentParentNodes[currentParentNodes.length - 1].x < HORIZONTAL_SPACING) {
+                involvedParents.add(nextParentId);
+            } else {
+                // If we found at least one collision, return the involved parents
+                if (involvedParents.size > 1) {
+                    return Array.from(involvedParents);
+                }
+                // If no collision, reset and move to the next parent
+                involvedParents = new Set();
+                break;
             }
-            currentGroup = [nodes[i]];
+        }
+
+        // If we have a group at the end, return the involved parents
+        if (involvedParents.size > 1) {
+            return Array.from(involvedParents);
         }
     }
 
-    if (currentGroup.length > 1) {
-        collisionGroups.push(currentGroup);
-    }
-
-    collisionGroups.forEach(group => resolveCollisionGroup(group));
+    // If no collisions were found, return an empty array
+    return [];
 }
 
-function resolveCollisionGroup(group) {
-    let parents = group.map(node => findParentNode(treeData, node));
+function resolveChildCollisions(parents) {
     let uniqueParents = [...new Set(parents)];
 
     let totalChildren = uniqueParents.reduce((sum, parent) => sum + parent.children.length, 0);
@@ -694,9 +770,9 @@ function resolveCollisionGroup(group) {
 
     let startX = (leftmostParent.x + rightmostParent.x) / 2 - totalWidth / 2;
 
-
     // Flatten the children of all parents and sort them by x position
     let allChildren = [];
+
     function sortChildrenByXPosition(parent) {
         parent.children.sort((a, b) => a.x - b.x);
         allChildren.push(...parent.children);
@@ -714,7 +790,7 @@ function resolveCollisionGroup(group) {
 
 function updateSubtreePositions(node) {
     if (node.children.length > 0) {
-        positionChildNodes(node, nodesByDepth[node.y / VERTICAL_SPACING]);
+        positionChildNodes(node, Math.floor(node.y / VERTICAL_SPACING));
         node.children.forEach(updateSubtreePositions);
     }
 }
