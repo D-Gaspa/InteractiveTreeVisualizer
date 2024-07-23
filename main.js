@@ -652,8 +652,10 @@ function updateNodePositions(node, x, y, depth) {
         nodesByDepth[depth] = [];
     }
 
-    // Add this node to the appropriate depth array
-    nodesByDepth[depth].push(node);
+    // Add this node to the appropriate depth array if it's not already there
+    if (!nodesByDepth[depth].includes(node)) {
+        nodesByDepth[depth].push(node);
+    }
 
     if (node.children.length > 0) {
         positionChildNodes(node, depth + 1);
@@ -672,12 +674,27 @@ function positionChildNodes(parentNode, childDepth) {
     });
 }
 
+function positionImmediateChildNodes(parentNode) {
+    const childrenCount = parentNode.children.length;
+    const totalWidth = (childrenCount - 1) * HORIZONTAL_SPACING;
+    let startX = parentNode.x - totalWidth / 2;
+
+    parentNode.children.forEach((child, index) => {
+        const childX = startX + index * HORIZONTAL_SPACING;
+        const childY = parentNode.y + VERTICAL_SPACING;
+        child.x = childX;
+        child.y = childY;
+    });
+}
+
 function resolveCollisionsAtDepth(nodes) {
     if (!nodes || nodes.length <= 1) return;
 
-    nodes.sort((a, b) => a.x - b.x);
+    // Create a copy of the original nodes array
+    let originalNodes = [...nodes];
+    originalNodes.sort((a, b) => a.x - b.x);
 
-    let nodesByParent = groupNodesByParentAndSort(nodes);
+    let nodesByParent = groupNodesByParentAndSort(originalNodes);
 
     let involvedParents = getFirstCollisionGroupParents(nodesByParent);
 
@@ -708,9 +725,6 @@ function resolveCollisionsAtDepth(nodes) {
 
         // Sort the parents by x position
         involvedParents.sort((a, b) => a.x - b.x);
-
-        // Update nodesByParent for the next iteration
-        nodesByParent = groupNodesByParentAndSort(nodes);
 
         iteration++;
     }
@@ -806,7 +820,7 @@ function resolveChildCollisions(parents) {
 
 function updateSubtreePositions(node) {
     if (node.children.length > 0) {
-        positionChildNodes(node, Math.floor(node.y / VERTICAL_SPACING));
+        positionImmediateChildNodes(node);
         node.children.forEach(updateSubtreePositions);
     }
 }
