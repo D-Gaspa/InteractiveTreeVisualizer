@@ -3,7 +3,7 @@ const DEFAULT_TREE_COLOR = '#2EA395';
 const DEFAULT_BORDER_COLOR = '#ffffff';
 const DEFAULT_HIGHLIGHT_COLORS = ['#3FB116', '#C20F0F', '#2175C4'];
 const DEFAULT_TREE_DATA = {
-    id: Date.now(),
+    id: 0,
     text: '1',
     x: 0,
     y: 0,
@@ -23,7 +23,8 @@ let borderColor = DEFAULT_BORDER_COLOR;
 let highlightColors = DEFAULT_HIGHLIGHT_COLORS;
 let treeData = null;
 let nodesByDepth = {};
-let MAX_COLLISION_ITERATIONS = 10;
+let nodeIDCounter = 0;
+let MAX_COLLISION_ITERATIONS = 30;
 
 // <------------------------Initialization------------------------>
 document.addEventListener('DOMContentLoaded', () => {
@@ -89,6 +90,11 @@ function loadState() {
         highlightColors = JSON.parse(savedHighlightColors);
     }
 
+    const savedNodeIDCounter = localStorage.getItem('nodeIDCounter');
+    if (savedNodeIDCounter) {
+        nodeIDCounter = parseInt(savedNodeIDCounter);
+    }
+
     const savedTreeData = localStorage.getItem('treeData');
     if (savedTreeData) {
         treeData = JSON.parse(savedTreeData);
@@ -106,6 +112,7 @@ function saveState() {
     localStorage.setItem('noBorder', document.getElementById('no-node-border').checked);
     localStorage.setItem('borderColorSameAsText', document.getElementById('node-border-same-as-text').checked);
     localStorage.setItem('highlightColors', JSON.stringify(highlightColors));
+    localStorage.setItem('nodeIDCounter', nodeIDCounter);
     localStorage.setItem('treeData', JSON.stringify(treeData));
 }
 
@@ -240,6 +247,7 @@ function resetTreeStructure() {
     treeData = JSON.parse(JSON.stringify(DEFAULT_TREE_DATA));
     treeData.x = document.getElementById('tree-svg').viewBox.baseVal.width / 2;
     treeData.y = document.getElementById('tree-svg').viewBox.baseVal.height / 2;
+    nodeIDCounter = 0;
     nodesByDepth = {};
     updateTreeLayout();
 }
@@ -298,6 +306,47 @@ function setupGlobalColorPickers() {
     });
 }
 
+function showNotification(message, type = 'info', duration = 3000) {
+    const container = document.getElementById('notification-container');
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+
+    container.appendChild(notification);
+
+    // Trigger reflow to enable transition
+    notification.offsetHeight;
+
+    // Add 'show' class to fade in
+    notification.classList.add('show');
+
+    setTimeout(() => {
+        // Remove 'show' class to fade out
+        notification.classList.remove('show');
+
+        // Remove the notification from the DOM after fade out
+        setTimeout(() => {
+            container.removeChild(notification);
+        }, 300);
+    }, duration);
+}
+
+function reapplySelection() {
+    if (selectedNode) {
+        const nodeId = selectedNode.dataset.id;
+        const node = document.querySelector(`.tree-node[data-id="${nodeId}"]`);
+        if (node) {
+            selectNode(node);
+        }
+    }
+}
+
+function generateUniqueId() {
+    return ++nodeIDCounter;
+}
+
+// <------------------------Node Menu------------------------>
+
 function setupNodeMenu() {
     const nodeMenu = document.getElementById('node-menu');
     const nodeValue = document.getElementById('node-value');
@@ -335,8 +384,9 @@ function setupNodeMenu() {
             const nodeId = selectedNode.dataset.id;
             const parentNode = findNodeById(treeData, nodeId);
             if (parentNode) {
+                let id = generateUniqueId();
                 const newChild = {
-                    id: Date.now(),
+                    id: id,
                     text: parentNode.text,
                     x: 0,
                     y: 0,
@@ -492,47 +542,12 @@ function hideNodeMenu() {
     selectedNode = null;
 }
 
-function showNotification(message, type = 'info', duration = 3000) {
-    const container = document.getElementById('notification-container');
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-
-    container.appendChild(notification);
-
-    // Trigger reflow to enable transition
-    notification.offsetHeight;
-
-    // Add 'show' class to fade in
-    notification.classList.add('show');
-
-    setTimeout(() => {
-        // Remove 'show' class to fade out
-        notification.classList.remove('show');
-
-        // Remove the notification from the DOM after fade out
-        setTimeout(() => {
-            container.removeChild(notification);
-        }, 300);
-    }, duration);
-}
-
-function reapplySelection() {
-    if (selectedNode) {
-        const nodeId = selectedNode.dataset.id;
-        const node = document.querySelector(`.tree-node[data-id="${nodeId}"]`);
-        if (node) {
-            selectNode(node);
-        }
-    }
-}
-
 // <------------------------Tree Operations------------------------>
 
 function updateTreeLayout() {
     if (!treeData) {
         treeData = {
-            id: Date.now(),
+            id: 0,
             text: '1',
             x: 0,
             y: 0,
@@ -664,34 +679,35 @@ function resolveCollisionsAtDepth(nodes) {
 
     let nodesByParent = groupNodesByParentAndSort(nodes);
 
-    let involvedParentsIDs = getFirstCollisionGroupParents(nodesByParent);
+    let involvedParents = getFirstCollisionGroupParents(nodesByParent);
 
-    if (involvedParentsIDs.length < 1) {
+    if (involvedParents.length < 1) {
         return;
     }
 
-    let involvedParents = involvedParentsIDs.map(id => findNodeById(treeData, id));
-
-    // Start of the while loop
+    // Sort the parents by x position
+    involvedParents.sort((a, b) => a.x - b.x);
 
     let iteration = 0;
     while (iteration < MAX_COLLISION_ITERATIONS) {
         resolveChildCollisions(involvedParents);
 
         // Check if there are still collisions after resolving
-        let updatedInvolvedParentsIDs = getFirstCollisionGroupParents(nodesByParent);
+        let updatedInvolvedParents = getFirstCollisionGroupParents(nodesByParent);
 
-        if (updatedInvolvedParentsIDs.length < 1) {
+        if (updatedInvolvedParents.length < 1) {
             // No more collisions, exit the loop
             break;
         }
 
         // If there are, check which parents were not in the previous group
-        let updatedInvolvedParents = updatedInvolvedParentsIDs.map(id => findNodeById(treeData, id));
         let newParents = updatedInvolvedParents.filter(parent => !involvedParents.includes(parent));
 
         // Add the new parents to the previous group
         involvedParents.push(...newParents);
+
+        // Sort the parents by x position
+        involvedParents.sort((a, b) => a.x - b.x);
 
         // Update nodesByParent for the next iteration
         nodesByParent = groupNodesByParentAndSort(nodes);
@@ -722,22 +738,22 @@ function groupNodesByParentAndSort(nodes) {
 }
 
 function getFirstCollisionGroupParents(nodesByParent) {
-    let parentIds = Object.keys(nodesByParent);
+    let parentNodes = Object.keys(nodesByParent).map(id => findNodeById(treeData, id));
     let involvedParents = new Set();
 
     // Check for collisions between nodes of different parents
-    for (let i = 0; i < parentIds.length; i++) {
-        let currentParentId = parentIds[i];
-        let currentParentNodes = nodesByParent[currentParentId];
-        involvedParents.add(currentParentId);
+    for (let i = 0; i < parentNodes.length; i++) {
+        let currentParent = parentNodes[i];
+        let currentParentNodes = nodesByParent[currentParent.id];
+        involvedParents.add(currentParent);
 
-        for (let j = i + 1; j < parentIds.length; j++) {
-            let nextParentId = parentIds[j];
-            let nextParentNodes = nodesByParent[nextParentId];
+        for (let j = i + 1; j < parentNodes.length; j++) {
+            let nextParent = parentNodes[j];
+            let nextParentNodes = nodesByParent[nextParent.id];
 
             // Check if the rightmost node of the current parent collides with the leftmost node of the next parent
             if (nextParentNodes[0].x - currentParentNodes[currentParentNodes.length - 1].x < HORIZONTAL_SPACING) {
-                involvedParents.add(nextParentId);
+                involvedParents.add(nextParent);
             } else {
                 // If we found at least one collision, return the involved parents
                 if (involvedParents.size > 1) {
@@ -1038,7 +1054,7 @@ function exportTreeAsPNG() {
     const svgData = new XMLSerializer().serializeToString(svg);
     const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
     const DOMURL = window.URL || window.webkitURL || window;
-    const url = DOMURL.createObjectURL(svgBlob);
+    let url = DOMURL.createObjectURL(svgBlob);
 
     // Create image from SVG
     const img = new Image();
@@ -1072,4 +1088,31 @@ function exportTreeAsPNG() {
         DOMURL.revokeObjectURL(url);
     };
     img.src = url;
+
+    // Debugging function to save tree data as JSON
+    // saveTreeDataAsJSON();
 }
+
+// function saveTreeDataAsJSON() {
+//     // Step 1: Convert treeData to a JSON string
+//     const treeDataJson = JSON.stringify(treeData, null, 2); // Pretty print the JSON
+//
+//     // Step 2: Create a Blob object
+//     const blob = new Blob([treeDataJson], {type: 'application/json'});
+//
+//     // Step 3: Create a URL for the Blob
+//     let url = URL.createObjectURL(blob);
+//
+//     // Step 4: Create an anchor element
+//     const a = document.createElement('a');
+//     a.href = url;
+//     a.download = 'treeData.json'; // Step 5: Set the desired file name
+//
+//     // Append, click to download, and remove the anchor element
+//     document.body.appendChild(a);
+//     a.click();
+//     document.body.removeChild(a);
+//
+//     // Optional: Revoke the Blob URL to free up resources
+//     URL.revokeObjectURL(url);
+// }
