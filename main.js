@@ -1102,31 +1102,4 @@ function exportTreeAsPNG() {
         DOMURL.revokeObjectURL(url);
     };
     img.src = url;
-
-    // Debugging function to save tree data as JSON
-    // saveTreeDataAsJSON();
 }
-
-// function saveTreeDataAsJSON() {
-//     // Step 1: Convert treeData to a JSON string
-//     const treeDataJson = JSON.stringify(treeData, null, 2); // Pretty print the JSON
-//
-//     // Step 2: Create a Blob object
-//     const blob = new Blob([treeDataJson], {type: 'application/json'});
-//
-//     // Step 3: Create a URL for the Blob
-//     let url = URL.createObjectURL(blob);
-//
-//     // Step 4: Create an anchor element
-//     const a = document.createElement('a');
-//     a.href = url;
-//     a.download = 'treeData.json'; // Step 5: Set the desired file name
-//
-//     // Append, click to download, and remove the anchor element
-//     document.body.appendChild(a);
-//     a.click();
-//     document.body.removeChild(a);
-//
-//     // Optional: Revoke the Blob URL to free up resources
-//     URL.revokeObjectURL(url);
-// }

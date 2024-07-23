@@ -1,4 +1,4 @@
-export function drawDebugLineY(svg, message, color, y) {
+function drawDebugLineY(svg, message, color, y) {
     const svg_ns = "http://www.w3.org/2000/svg";
 
     // Draw Line
@@ -20,7 +20,7 @@ export function drawDebugLineY(svg, message, color, y) {
     svg.appendChild(debugLabel);
 }
 
-export function drawDebugLineX(svg, message, color, x) {
+function drawDebugLineX(svg, message, color, x) {
     const svg_ns = "http://www.w3.org/2000/svg";
 
     // Draw Line
@@ -42,7 +42,7 @@ export function drawDebugLineX(svg, message, color, x) {
     svg.appendChild(debugLabel);
 }
 
-function drawDebugLines(svg) {
+export function drawDebugLines(svg, VERTICAL_MARGIN, VERTICAL_SPACING, HORIZONTAL_MARGIN, HORIZONTAL_SPACING, NODE_RADIUS) {
     drawDebugLineY(svg, 'Begin', 'red', 0);
     drawDebugLineY(svg, 'Top Margin', 'blue', VERTICAL_MARGIN);
     drawDebugLineY(svg, 'Root Start', 'red', VERTICAL_MARGIN + NODE_RADIUS);
@@ -57,4 +57,28 @@ function drawDebugLines(svg) {
     drawDebugLineX(svg, 'Root Start', 'red', HORIZONTAL_MARGIN + NODE_RADIUS);
     drawDebugLineX(svg, 'End of Root', 'green', HORIZONTAL_MARGIN + NODE_RADIUS * 2);
     drawDebugLineX(svg, 'Spacing', 'blue', HORIZONTAL_MARGIN + HORIZONTAL_SPACING);
+}
+
+export function saveTreeDataAsJSON(treeData) {
+    // Step 1: Convert treeData to a JSON string
+    const treeDataJson = JSON.stringify(treeData, null, 2); // Pretty print the JSON
+
+    // Step 2: Create a Blob object
+    const blob = new Blob([treeDataJson], {type: 'application/json'});
+
+    // Step 3: Create a URL for the Blob
+    let url = URL.createObjectURL(blob);
+
+    // Step 4: Create an anchor element
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'treeData.json'; // Step 5: Set the desired file name
+
+    // Append, click to download, and remove the anchor element
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // Optional: Revoke the Blob URL to free up resources
+    URL.revokeObjectURL(url);
 }
