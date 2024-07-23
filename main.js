@@ -561,6 +561,11 @@ function updateSVGViewBox() {
     // Update all node positions
     updateNodePositions(treeData, initialX, initialY, 0);
 
+    // Resolve collisions at each depth
+    for (let depth in nodesByDepth) {
+        resolveCollisionsAtDepth(depth);
+    }
+
     // Calculate actual dimensions based on node positions
     const {width, height, leftmostPosition, rightmostPosition} = calculateSVGDimensions(treeData);
 
@@ -634,20 +639,20 @@ function updateNodePositions(node, x, y, depth) {
     nodesByDepth[depth].push(node);
 
     if (node.children.length > 0) {
-        const childrenWidth = (node.children.length - 1) * HORIZONTAL_SPACING;
-        let startX = x - childrenWidth / 2;
-
-        node.children.forEach((child, index) => {
-            const childX = startX + index * HORIZONTAL_SPACING;
-            const childY = y + VERTICAL_SPACING;
-            updateNodePositions(child, childX, childY, depth + 1);
-        });
+        positionChildNodes(node, depth + 1);
     }
+}
 
-    // After processing all children, check for collisions at this depth
-    if (depth > 0) { // Skip for root node
-        resolveCollisionsAtDepth(depth);
-    }
+function positionChildNodes(parentNode, childDepth) {
+    const childrenCount = parentNode.children.length;
+    const totalWidth = (childrenCount - 1) * HORIZONTAL_SPACING;
+    let startX = parentNode.x - totalWidth / 2;
+
+    parentNode.children.forEach((child, index) => {
+        const childX = startX + index * HORIZONTAL_SPACING;
+        const childY = parentNode.y + VERTICAL_SPACING;
+        updateNodePositions(child, childX, childY, childDepth);
+    });
 }
 
 function resolveCollisionsAtDepth(depth) {
@@ -656,35 +661,73 @@ function resolveCollisionsAtDepth(depth) {
 
     nodes.sort((a, b) => a.x - b.x);
 
-    let needsAdjustment = false;
+    let collisionGroups = [];
+    let currentGroup = [nodes[0]];
+
     for (let i = 1; i < nodes.length; i++) {
-        if (nodes[i].x - nodes[i - 1].x < HORIZONTAL_SPACING) {
-            needsAdjustment = true;
-            break;
+        if (nodes[i].x - nodes[i-1].x < HORIZONTAL_SPACING) {
+            currentGroup.push(nodes[i]);
+        } else {
+            if (currentGroup.length > 1) {
+                collisionGroups.push(currentGroup);
+            }
+            currentGroup = [nodes[i]];
         }
     }
 
-    if (needsAdjustment) {
-        let totalWidth = (nodes.length - 1) * HORIZONTAL_SPACING;
-        let startX = nodes[0].x - totalWidth / 2;
+    if (currentGroup.length > 1) {
+        collisionGroups.push(currentGroup);
+    }
 
-        nodes.forEach((node, index) => {
-            node.x = startX + index * HORIZONTAL_SPACING;
-            updateChildrenPositions(node);
-        });
+    collisionGroups.forEach(group => resolveCollisionGroup(group));
+}
+
+function resolveCollisionGroup(group) {
+    let parents = group.map(node => findParentNode(treeData, node));
+    let uniqueParents = [...new Set(parents)];
+
+    let totalChildren = uniqueParents.reduce((sum, parent) => sum + parent.children.length, 0);
+    let totalWidth = (totalChildren - 1) * HORIZONTAL_SPACING;
+
+    let leftmostParent = uniqueParents.reduce((left, parent) => parent.x < left.x ? parent : left);
+    let rightmostParent = uniqueParents.reduce((right, parent) => parent.x > right.x ? parent : right);
+
+    let startX = (leftmostParent.x + rightmostParent.x) / 2 - totalWidth / 2;
+
+
+    // Flatten the children of all parents and sort them by x position
+    let allChildren = [];
+    function sortChildrenByXPosition(parent) {
+        parent.children.sort((a, b) => a.x - b.x);
+        allChildren.push(...parent.children);
+    }
+
+    // Sort the parents themselves by x position
+    uniqueParents.sort((a, b) => a.x - b.x);
+    uniqueParents.forEach(parent => sortChildrenByXPosition(parent));
+
+    allChildren.forEach((child, index) => {
+        child.x = startX + index * HORIZONTAL_SPACING;
+        updateSubtreePositions(child);
+    });
+}
+
+function updateSubtreePositions(node) {
+    if (node.children.length > 0) {
+        positionChildNodes(node, nodesByDepth[node.y / VERTICAL_SPACING]);
+        node.children.forEach(updateSubtreePositions);
     }
 }
 
-function updateChildrenPositions(node) {
-    if (node.children.length > 0) {
-        const childrenWidth = (node.children.length - 1) * HORIZONTAL_SPACING;
-        let startX = node.x - childrenWidth / 2;
-
-        node.children.forEach((child, index) => {
-            child.x = startX + index * HORIZONTAL_SPACING;
-            updateChildrenPositions(child);
-        });
+function findParentNode(root, targetNode) {
+    if (root.children.includes(targetNode)) {
+        return root;
     }
+    for (let child of root.children) {
+        const found = findParentNode(child, targetNode);
+        if (found) return found;
+    }
+    return null;
 }
 
 function calculateIntersectionPoint(x1, y1, x2, y2, cx, cy, r) {
