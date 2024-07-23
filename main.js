@@ -605,10 +605,20 @@ function calculateSVGDimensions(node) {
 
     traverse(node);
 
+    // Width:
+    // (maxX - minX) = Distance from the centers of the leftmost node to the rightmost node
+    // NODE_RADIUS * 2 = Account for the left radius of the leftmost node and right radius of the rightmost node
+    // HORIZONTAL_MARGIN * 2 = Account for the margin on both sides
     const width = maxX - minX + NODE_RADIUS * 2 + HORIZONTAL_MARGIN * 2;
-    const height = maxY + NODE_RADIUS + VERTICAL_MARGIN * 2;
 
-    return { width, height, leftmostPosition: minX, rightmostPosition: maxX };
+    // Height:
+    // maxY = Distance from the center of the bottommost node to the beginning of the screen
+    //        since the starting root position accounts for the top margin and the top radius of the root node
+    // NODE_RADIUS = Account for the bottom radius of the topmost node
+    // VERTICAL_MARGIN = Account for the bottom margin
+    const height = maxY + NODE_RADIUS + VERTICAL_MARGIN;
+
+    return {width, height, leftmostPosition: minX, rightmostPosition: maxX};
 }
 
 function updateNodePositions(node, x, y, depth) {
@@ -785,11 +795,15 @@ function renderNodeElement(node) {
     nodeGroup.classList.add('tree-node');
 
     let nodeColor = treeColor;
+    let strokeColor = borderColor;
+
     if (node.highlight) {
         nodeColor = node.highlight.type === 'custom' ? node.highlight.color : highlightColors[node.highlight.index];
     }
 
-    let strokeColor = borderColor === 'transparent' ? nodeColor : borderColor;
+    if (document.getElementById('node-border-same-as-text').checked) {
+        strokeColor = document.getElementById('no-node-border').checked ? nodeColor : getContrastColor(nodeColor);
+    }
 
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('r', NODE_RADIUS.toString());
@@ -837,6 +851,9 @@ function selectNode(nodeGroup) {
 
     // Add 'selected' class to the clicked node
     nodeGroup.classList.add('selected');
+
+    // Update the selected node
+    selectedNode = nodeGroup;
 }
 
 function removeNodeFromTree(node, id) {
