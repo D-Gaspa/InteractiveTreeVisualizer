@@ -55,13 +55,13 @@ Experience the Interactive Tree Visualizer firsthand! Click the link above to tr
 
 I am always looking to enhance the Interactive Tree Visualizer. Some features I am considering for future updates:
 
-1. **Drag-and-Drop Functionality**: Allow users to rearrange nodes by dragging and dropping.
+1. **Advanced Export Options**: Introduce SVG export and data export in JSON format.
 2. **Subtree Collapsing**: Implement the ability to collapse and expand subtrees for better navigation of large
    structures.
-3. **Advanced Export Options**: Introduce SVG export and data export in JSON format.
-4. **Undo/Redo Functionality**: Implement a history stack for undoing and redoing tree modifications.
-5. **Themes**: Offer multiple color themes and allow users to create custom themes.
-6. **Accessibility Improvements**: Add and improve mouse and keyboard navigation and shortcuts.
+3. **Accessibility Improvements**: Add and improve mouse and keyboard navigation and shortcuts.
+4. **Drag-and-Drop Functionality**: Allow users to rearrange nodes by dragging and dropping.
+5. **Undo/Redo Functionality**: Implement a history stack for undoing and redoing tree modifications.
+6. **Themes**: Offer multiple color themes and allow users to create custom themes.
 
 I welcome contributions and suggestions from the community to make the Interactive Tree Visualizer even better!
 

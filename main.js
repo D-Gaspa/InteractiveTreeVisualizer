@@ -206,7 +206,7 @@ function setupEventListeners() {
         updateTreeLayout();
     });
 
-    exportTreeButton.addEventListener('click', exportTreeAsPNG);
+    exportTreeButton.addEventListener('click', exportTree)
     setupResetButtons();
 }
 
@@ -411,6 +411,11 @@ function setupNodeMenu() {
 
                     // Change text color based on contrast
                     selectedNode.querySelector('text').setAttribute('fill', getContrastColor(highlightColors[index]));
+
+                    // Change the border color if the 'same as text' option is selected
+                    if (document.getElementById('node-border-same-as-text').checked) {
+                        selectedNode.querySelector('circle').setAttribute('stroke', getContrastColor(highlightColors[index]));
+                    }
 
                     // Update the remove highlight button color to indicate that a highlight is present
                     removeHighlightBtn.style.backgroundColor = '#dc3545';
@@ -1044,13 +1049,28 @@ function updateAllNodesHighlightColor(colorIndex, newColor) {
 }
 
 // <------------------------Export Tree------------------------>
+function exportTree() {
+    const format = document.getElementById('export-format').value;
+    switch (format) {
+        case 'png':
+            exportTreeAsPNG();
+            break;
+        case 'svg':
+            exportTreeAsSVG();
+            break;
+        case 'json':
+            exportTreeAsJSON();
+            break;
+        case 'jpeg':
+            exportTreeAsJPEG();
+            break;
+    }
+}
 
-function exportTreeAsPNG() {
+function prepareCanvasForExport(backgroundColor) {
     const svg = document.getElementById('tree-svg');
     const container = document.getElementById('tree-container');
     const scaleFactor = parseFloat(document.getElementById('scale-factor').value);
-    const useTransparentBackground = document.getElementById('container-transparent-background').checked;
-    const backgroundColor = useTransparentBackground ? 'transparent' : document.getElementById('container-background-color').value;
 
     // Create a canvas element
     const canvas = document.createElement('canvas');
@@ -1067,25 +1087,37 @@ function exportTreeAsPNG() {
     // Convert SVG to data URL
     const svgData = new XMLSerializer().serializeToString(svg);
     const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+    return {canvas, ctx, svgBlob};
+}
+
+function renderImageOnCanvas(canvas, img, ctx) {
+    // Calculate scaling to maintain the aspect ratio
+    const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+    const x = (canvas.width / 2) - (img.width / 2) * scale;
+    const y = (canvas.height / 2) - (img.height / 2) * scale;
+
+    // Set canvas context properties for better text rendering
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.textRendering = 'geometricPrecision';
+    ctx.fontSmooth = 'always';
+
+    // Draw image on canvas
+    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+}
+
+function exportTreeAsPNG() {
+    const useTransparentBackground = document.getElementById('container-transparent-background').checked;
+    const backgroundColor = useTransparentBackground ? 'transparent' : document.getElementById('container-background-color').value;
+
+    const {canvas, ctx, svgBlob} = prepareCanvasForExport(backgroundColor);
     const DOMURL = window.URL || window.webkitURL || window;
-    let url = DOMURL.createObjectURL(svgBlob);
+    const url = DOMURL.createObjectURL(svgBlob);
 
     // Create image from SVG
     const img = new Image();
     img.onload = function () {
-        // Calculate scaling to maintain the aspect ratio
-        const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
-        const x = (canvas.width / 2) - (img.width / 2) * scale;
-        const y = (canvas.height / 2) - (img.height / 2) * scale;
-
-        // Set canvas context properties for better text rendering
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.textRendering = 'geometricPrecision';
-        ctx.fontSmooth = 'always';
-
-        // Draw image on canvas
-        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        renderImageOnCanvas(canvas, img, ctx);
 
         // Convert canvas to PNG
         const pngUrl = canvas.toDataURL('image/png');
@@ -1100,6 +1132,62 @@ function exportTreeAsPNG() {
 
         // Clean up
         DOMURL.revokeObjectURL(url);
+    };
+    img.src = url;
+}
+
+function exportTreeAsSVG() {
+    const svg = document.getElementById('tree-svg');
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(svgBlob);
+
+    const downloadLink = document.createElement('a');
+    downloadLink.href = url;
+    downloadLink.download = 'tree_visualization.svg';
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+
+    URL.revokeObjectURL(url);
+}
+
+function exportTreeAsJSON() {
+    const jsonData = JSON.stringify(treeData, null, 2);
+    const blob = new Blob([jsonData], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+
+    const downloadLink = document.createElement('a');
+    downloadLink.href = url;
+    downloadLink.download = 'tree_data.json';
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+
+    URL.revokeObjectURL(url);
+}
+
+function exportTreeAsJPEG() {
+    const useTransparentBackground = document.getElementById('container-transparent-background').checked;
+    const backgroundColor = useTransparentBackground ? 'white' : document.getElementById('container-background-color').value;
+
+    const {canvas, ctx, svgBlob} = prepareCanvasForExport(backgroundColor);
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = function () {
+        renderImageOnCanvas(canvas, img, ctx);
+
+        const jpegUrl = canvas.toDataURL('image/jpeg');
+
+        const downloadLink = document.createElement('a');
+        downloadLink.href = jpegUrl;
+        downloadLink.download = 'tree_visualization.jpg';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+        URL.revokeObjectURL(url);
     };
     img.src = url;
 }
