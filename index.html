@@ -15,35 +15,60 @@
         <div id="tree-container">
             <svg id="tree-svg"></svg>
         </div>
-        <h3>Node Options</h3>
-        <div id="node-options">
-            <div class="node-section">
-                <h4>Node Color Options</h4>
+        <h3>Tree Options</h3>
+        <div id="tree-options-container">
+            <div class="tree-option-section">
+                <h4>Node Options</h4>
                 <div class="section-content">
-                    <div class="pair-container">
-                        <label for="node-color">Node Color:</label>
+                    <div class="pair-container-tree-section">
+                        <label for="node-color">Color:</label>
                         <input type="color" id="node-color" value="#4CAF50">
                     </div>
-                    <div class="pair-container">
+                    <div class="pair-container-tree-section">
                         <input type="checkbox" id="node-transparent">
                         <label for="node-transparent">Transparent Node</label>
                     </div>
                 </div>
             </div>
-            <div class="border-section">
-                <h4>Node Border Options</h4>
+            <div class="tree-option-section">
+                <h4>Border Options</h4>
                 <div class="section-content">
-                    <div class="pair-container">
-                        <label for="border-color">Node Border Color:</label>
+                    <div class="pair-container-tree-section">
+                        <label for="border-color">Color:</label>
                         <input type="color" id="border-color" value="#ffffff">
                     </div>
-                    <div class="pair-container">
+                    <div class="pair-container-tree-section">
+                        <label for="border-thickness">Thickness:</label>
+                        <input type="number" id="border-thickness" value="2" min="1" max="10" step="1">
+                    </div>
+                    <div class="pair-container-tree-section">
                         <input type="checkbox" id="node-border-same-as-text">
                         <label for="node-border-same-as-text">Same as Text</label>
                     </div>
-                    <div class="pair-container">
+                    <div class="pair-container-tree-section">
                         <input type="checkbox" id="no-node-border">
                         <label for="no-node-border">No Border</label>
+                    </div>
+                </div>
+            </div>
+            <div class="tree-option-section">
+                <h4>Line Options</h4>
+                <div class="section-content">
+                    <div class="pair-container-tree-section">
+                        <label for="line-color">Color:</label>
+                        <input type="color" id="line-color" value="#ffffff">
+                    </div>
+                    <div class="pair-container-tree-section">
+                        <label for="line-thickness">Thickness:</label>
+                        <input type="number" id="line-thickness" value="2" min="1" max="10" step="1">
+                    </div>
+                    <div class="pair-container-tree-section">
+                        <input type="checkbox" id="line-same-as-border">
+                        <label for="line-same-as-border">Same as Border</label>
+                    </div>
+                    <div class="pair-container-tree-section">
+                        <input type="checkbox" id="no-line">
+                        <label for="no-line">No Line</label>
                     </div>
                 </div>
             </div>
