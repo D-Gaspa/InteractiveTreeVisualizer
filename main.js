@@ -20,6 +20,7 @@ let selectedNode = null;
 let containerBackgroundColor = DEFAULT_CONTAINER_BACKGROUND_COLOR;
 let treeColor = DEFAULT_TREE_COLOR;
 let borderColor = DEFAULT_BORDER_COLOR;
+let lineColor = DEFAULT_BORDER_COLOR;
 let highlightColors = DEFAULT_HIGHLIGHT_COLORS;
 let treeData = null;
 let nodesByDepth = {};
@@ -37,57 +38,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadState() {
-    const savedBackground = localStorage.getItem('backgroundColor');
-    if (savedBackground) {
-        containerBackgroundColor = savedBackground;
-        document.getElementById('tree-container').style.backgroundColor = containerBackgroundColor;
-        if (containerBackgroundColor === 'transparent') {
-            document.getElementById('container-transparent-background').checked = true;
-        } else {
-            document.getElementById('container-background-color').value = containerBackgroundColor;
-        }
-    }
+    // Load the saved state from local storage
+    loadGeneralOptions();
+    loadHighlightColors();
+    loadBorderOptions();
+    loadLineOptions();
+    // loadImportExportOptions();
 
     const scaleFactor = localStorage.getItem('scaleFactor');
     if (scaleFactor) {
         document.getElementById('scale-factor').value = scaleFactor;
-    }
-
-    const savedNodeColor = localStorage.getItem('nodeColor');
-    if (savedNodeColor) {
-        treeColor = savedNodeColor;
-        document.getElementById('node-color').value = treeColor;
-        if (treeColor === 'transparent') {
-            document.getElementById('node-transparent').checked = true;
-            document.getElementById('node-color').value = DEFAULT_TREE_COLOR;
-        } else {
-            document.getElementById('node-color').value = treeColor;
-        }
-    }
-
-    const noBorder = localStorage.getItem('noBorder');
-    const borderColorSameAsText = localStorage.getItem('borderColorSameAsText');
-
-    const savedBorderColor = localStorage.getItem('borderColor');
-    if (savedBorderColor) {
-        if (noBorder === 'true') {
-            borderColor = 'transparent';
-            document.getElementById('border-color').value = DEFAULT_BORDER_COLOR;
-            document.getElementById('no-node-border').checked = true;
-        } else {
-            if (borderColorSameAsText === 'true') {
-                borderColor = getContrastColor(treeColor);
-                document.getElementById(`node-border-same-as-text`).checked = true;
-            } else {
-                borderColor = savedBorderColor;
-                document.getElementById('border-color').value = borderColor;
-            }
-        }
-    }
-
-    const savedHighlightColors = localStorage.getItem('highlightColors');
-    if (savedHighlightColors) {
-        highlightColors = JSON.parse(savedHighlightColors);
     }
 
     const savedNodeIDCounter = localStorage.getItem('nodeIDCounter');
@@ -104,40 +64,144 @@ function loadState() {
     updateGlobalColorPickers();
 }
 
+function loadGeneralOptions() {
+    const savedNodeColor = localStorage.getItem('nodeColor');
+    const savedBackground = localStorage.getItem('backgroundColor');
+
+    if (savedNodeColor) {
+        treeColor = savedNodeColor;
+        document.getElementById('node-color').value = treeColor;
+        if (treeColor === 'transparent') {
+            document.getElementById('node-transparent').checked = true;
+            document.getElementById('node-color').value = DEFAULT_TREE_COLOR;
+        } else {
+            document.getElementById('node-color').value = treeColor;
+        }
+    }
+
+    if (savedBackground) {
+        containerBackgroundColor = savedBackground;
+        document.getElementById('tree-container').style.backgroundColor = containerBackgroundColor;
+        if (containerBackgroundColor === 'transparent') {
+            document.getElementById('container-transparent-background').checked = true;
+        } else {
+            document.getElementById('container-background-color').value = containerBackgroundColor;
+        }
+    }
+}
+
+function loadHighlightColors() {
+    const savedHighlightColors = localStorage.getItem('highlightColors');
+    if (savedHighlightColors) {
+        highlightColors = JSON.parse(savedHighlightColors);
+    }
+}
+
+function loadBorderOptions() {
+    const savedBorderColor = localStorage.getItem('borderColor');
+    const borderThickness = localStorage.getItem('borderThickness');
+    const borderColorSameAsText = localStorage.getItem('borderColorSameAsText');
+    const noBorder = localStorage.getItem('noBorder');
+
+    if (savedBorderColor) {
+        borderColor = savedBorderColor;
+        document.getElementById('border-color').value = borderColor;
+        if (noBorder === 'true') {
+            document.getElementById('no-border').checked = true;
+        }
+        if (borderColorSameAsText === 'true') {
+            document.getElementById(`border-same-as-text`).checked = true;
+        }
+    }
+
+    if (borderThickness) {
+        document.getElementById('border-thickness').value = borderThickness;
+    }
+}
+
+function loadLineOptions() {
+    const savedLineColor = localStorage.getItem('lineColor');
+    const lineThickness = localStorage.getItem('lineThickness');
+    const lineSameAsBorder = localStorage.getItem('lineSameAsBorder');
+    const noLine = localStorage.getItem('noLine');
+
+    if (savedLineColor) {
+        lineColor = savedLineColor;
+        document.getElementById('line-color').value = lineColor;
+        if (noLine === 'true') {
+            document.getElementById('no-line').checked = true;
+        }
+        if (lineSameAsBorder === 'true') {
+            document.getElementById('line-same-as-border').checked = true;
+        }
+    }
+
+    if (lineThickness) {
+        document.getElementById('line-thickness').value = lineThickness;
+    }
+}
+
 function saveState() {
-    localStorage.setItem('backgroundColor', containerBackgroundColor);
-    localStorage.setItem('scaleFactor', document.getElementById('scale-factor').value);
-    localStorage.setItem('nodeColor', treeColor);
-    localStorage.setItem('borderColor', borderColor);
-    localStorage.setItem('noBorder', document.getElementById('no-node-border').checked);
-    localStorage.setItem('borderColorSameAsText', document.getElementById('node-border-same-as-text').checked);
-    localStorage.setItem('highlightColors', JSON.stringify(highlightColors));
-    localStorage.setItem('nodeIDCounter', nodeIDCounter);
+    // Global information:
     localStorage.setItem('treeData', JSON.stringify(treeData));
+    localStorage.setItem('nodeIDCounter', nodeIDCounter);
+
+    // General Options:
+    localStorage.setItem('nodeColor', treeColor);
+    localStorage.setItem('backgroundColor', containerBackgroundColor);
+
+    // Highlight Colors:
+    localStorage.setItem('highlightColors', JSON.stringify(highlightColors));
+
+    // Border Options:
+    localStorage.setItem('borderColor', borderColor);
+    localStorage.setItem('borderThickness', document.getElementById('border-thickness').value);
+    localStorage.setItem('borderColorSameAsText', document.getElementById('border-same-as-text').checked);
+    localStorage.setItem('noBorder', document.getElementById('no-border').checked);
+
+    // Line Options:
+    localStorage.setItem('lineColor', document.getElementById('line-color').value);
+    localStorage.setItem('lineThickness', document.getElementById('line-thickness').value);
+    localStorage.setItem('lineSameAsBorder', document.getElementById('line-same-as-border').checked);
+    localStorage.setItem('noLine', document.getElementById('no-line').checked);
+
+    // Import/Export Options:
+    localStorage.setItem('scaleFactor', document.getElementById('scale-factor').value);
 }
 
 
 // <------------------------UI Controls------------------------>
 function setupEventListeners() {
-    const scaleFactorInput = document.getElementById('scale-factor');
-    const nodeColorPicker = document.getElementById('node-color');
-    const nodeTransparentCheckbox = document.getElementById('node-transparent');
-    const borderColorPicker = document.getElementById('border-color');
-    const noBorderCheckbox = document.getElementById('no-node-border');
-    const borderColorSameAsTextCheckbox = document.getElementById('node-border-same-as-text');
-    const containerColorPicker = document.getElementById('container-background-color');
-    const containerTransparentCheckbox = document.getElementById('container-transparent-background');
-    const importFileInput = document.getElementById('import-json');
-    const importTreeButton = document.getElementById('import-tree');
-    const exportTreeButton = document.getElementById('export-tree');
-
     // Update the tree layout when the window is resized
     window.addEventListener('resize', updateSVGViewBox);
 
-    scaleFactorInput.addEventListener('input', () => {
-        saveState()
+    setupGeneralOptionsEventListeners();
+    setupBorderOptionsEventListeners();
+    setupLineOptionsEventListeners();
+    setupImportExportEventListeners();
+    setupResetButtons();
+}
+
+function setupGeneralOptionsEventListeners() {
+    const nodeColorPicker = document.getElementById('node-color');
+    const containerColorPicker = document.getElementById('container-background-color');
+    const nodeTransparentCheckbox = document.getElementById('node-transparent');
+    const containerTransparentCheckbox = document.getElementById('container-transparent-background');
+    const borderSameAsTextCheckbox = document.getElementById('border-same-as-text');
+
+    // Node Color Options:
+    nodeColorPicker.addEventListener('input', () => {
+        if (!nodeTransparentCheckbox.checked) {
+            treeColor = nodeColorPicker.value;
+            if (borderSameAsTextCheckbox.checked) {
+                borderColor = getContrastColor(treeColor);
+            }
+            updateTreeLayout();
+            saveState();
+        }
     });
 
+    // Container Color Options:
     containerColorPicker.addEventListener('input', () => {
         if (!containerTransparentCheckbox.checked) {
             containerBackgroundColor = containerColorPicker.value;
@@ -146,6 +210,17 @@ function setupEventListeners() {
         }
     });
 
+    // Node Transparent Checkbox:
+    nodeTransparentCheckbox.addEventListener('change', () => {
+        if (nodeTransparentCheckbox.checked) {
+            treeColor = 'transparent';
+        } else {
+            treeColor = nodeColorPicker.value;
+        }
+        updateTreeLayout();
+    });
+
+    // Container Transparent Checkbox:
     containerTransparentCheckbox.addEventListener('change', () => {
         if (containerTransparentCheckbox.checked) {
             containerBackgroundColor = 'transparent';
@@ -156,76 +231,163 @@ function setupEventListeners() {
         }
         saveState();
     });
+}
 
-    nodeColorPicker.addEventListener('input', () => {
-        if (!nodeTransparentCheckbox.checked) {
-            treeColor = nodeColorPicker.value;
-            if (borderColorSameAsTextCheckbox.checked) {
-                borderColor = getContrastColor(treeColor);
-            }
-            updateTreeLayout();
-            saveState();
-        }
-    });
+function setupBorderOptionsEventListeners() {
+    const borderColorPicker = document.getElementById('border-color');
+    const borderThicknessInput = document.getElementById('border-thickness');
+    const borderSameAsTextCheckbox = document.getElementById('border-same-as-text');
+    const noBorderCheckbox = document.getElementById('no-border');
+    const lineSameAsBorderCheckbox = document.getElementById('line-same-as-border');
+    const noLineCheckbox = document.getElementById('no-line');
 
-    nodeTransparentCheckbox.addEventListener('change', () => {
-        if (nodeTransparentCheckbox.checked) {
-            treeColor = 'transparent';
-        } else {
-            treeColor = nodeColorPicker.value;
-        }
-        updateTreeLayout();
-    });
-
+    // Border Color Options:
     borderColorPicker.addEventListener('input', () => {
-        if (!noBorderCheckbox.checked && !borderColorSameAsTextCheckbox.checked) {
-            borderColor = borderColorPicker.value;
-            updateTreeLayout();
+        borderColor = borderColorPicker.value;
+        if (!noBorderCheckbox.checked && !borderSameAsTextCheckbox.checked) {
+            document.querySelectorAll('.tree-node circle').forEach(circle => {
+                circle.setAttribute('stroke', borderColor);
+            });
+
+            if (lineSameAsBorderCheckbox && !noLineCheckbox.checked) {
+                updateLineColors();
+            }
         }
+        saveState();
     });
 
+    // Border Thickness Options:
+    borderThicknessInput.addEventListener('input', () => {
+        document.querySelectorAll('.tree-node circle').forEach(circle => {
+            circle.setAttribute('stroke-width', borderThicknessInput.value);
+        });
+        saveState();
+    });
+
+    // Border Same As Text Checkbox:
+    borderSameAsTextCheckbox.addEventListener('change', () => {
+        if (borderSameAsTextCheckbox.checked) {
+            document.querySelectorAll('.tree-node circle').forEach(circle => {
+                // get the node color
+                const nodeColor = circle.getAttribute('fill');
+                circle.setAttribute('stroke', getContrastColor(nodeColor));
+            });
+        } else {
+            let newBorderColor = borderColorPicker.value;
+            document.querySelectorAll('.tree-node circle').forEach(circle => {
+            circle.setAttribute('stroke', newBorderColor);
+        });
+        }
+
+        if (lineSameAsBorderCheckbox && !noLineCheckbox.checked) {
+            updateLineColors();
+        }
+
+        saveState();
+    });
+
+    // No Border Checkbox:
     noBorderCheckbox.addEventListener('change', () => {
+        let newBorderColor;
         if (noBorderCheckbox.checked) {
-            borderColor = 'transparent';
+            newBorderColor = 'transparent';
         } else {
-            if (borderColorSameAsTextCheckbox.checked) {
-                borderColor = getContrastColor(treeColor);
+            if (borderSameAsTextCheckbox.checked) {
+                newBorderColor = getContrastColor(treeColor);
             } else {
-                borderColor = borderColorPicker.value;
+                newBorderColor = borderColorPicker.value;
             }
         }
-        updateTreeLayout();
+        document.querySelectorAll('.tree-node circle').forEach(circle => {
+            circle.setAttribute('stroke', newBorderColor);
+        });
+
+        if (lineSameAsBorderCheckbox && !noLineCheckbox.checked) {
+            updateLineColors();
+        }
+        saveState();
+    });
+}
+
+function setupLineOptionsEventListeners() {
+    const lineColorPicker = document.getElementById('line-color');
+    const lineThicknessInput = document.getElementById('line-thickness');
+    const lineSameAsBorderCheckbox = document.getElementById('line-same-as-border');
+    const noLineCheckbox = document.getElementById('no-line');
+
+    // Line Color Options:
+    lineColorPicker.addEventListener('input', () => {
+        lineColor = lineColorPicker.value;
+        if (!noLineCheckbox.checked) {
+            document.querySelectorAll('line').forEach(line => {
+                line.setAttribute('stroke', lineColorPicker.value);
+            });
+        }
+        saveState();
     });
 
-    borderColorSameAsTextCheckbox.addEventListener('change', () => {
-        if (borderColorSameAsTextCheckbox.checked) {
-            if (!noBorderCheckbox.checked) {
-                borderColor = getContrastColor(treeColor);
-            }
+    // Line Thickness Options:
+    lineThicknessInput.addEventListener('input', () => {
+        document.querySelectorAll('line').forEach(line => {
+            line.setAttribute('stroke-width', lineThicknessInput.value);
+        });
+        saveState();
+    });
+
+    // Line Same As Border Checkbox:
+    lineSameAsBorderCheckbox.addEventListener('change', () => {
+        updateLineColors();
+    });
+
+    // No Line Checkbox:
+    noLineCheckbox.addEventListener('change', () => {
+        if (noLineCheckbox.checked) {
+            document.querySelectorAll('line').forEach(line => {
+                line.setAttribute('stroke', 'transparent');
+            });
         } else {
-            borderColor = borderColorPicker.value;
+            updateLineColors();
         }
-        updateTreeLayout();
+        saveState();
     });
+}
 
+function setupImportExportEventListeners() {
+    const importFileInput = document.getElementById('import-json');
+    const importTreeButton = document.getElementById('import-tree');
+    const scaleFactorInput = document.getElementById('scale-factor');
+    const exportTreeButton = document.getElementById('export-tree');
+
+    // Import Options:
     importFileInput.addEventListener('change', function (e) {
         this.nextElementSibling.nextElementSibling.textContent = e.target.files[0] ? e.target.files[0].name : 'No file chosen';
         this.nextElementSibling.nextElementSibling.style.color = e.target.files[0] ? '#d0d0d0' : '#a0a0a0';
     });
     importTreeButton.addEventListener('click', importTree);
+
+    // Export Options:
+    scaleFactorInput.addEventListener('input', () => {
+        saveState()
+    });
     exportTreeButton.addEventListener('click', exportTree)
-    setupResetButtons();
 }
 
 function setupResetButtons() {
     const resetColorsBtn = document.getElementById('reset-colors');
     const resetTreeBtn = document.getElementById('reset-tree');
     const resetAllBtn = document.getElementById('reset-all');
+    const lineColorPicker = document.getElementById('line-color');
+    const exportFormat = document.getElementById('export-format');
+    const scaleFactor = document.getElementById('scale-factor');
+    const borderThickness = document.getElementById('border-thickness');
+    const lineThickness = document.getElementById('line-thickness');
 
+    // Reset Color Options:
     resetColorsBtn.addEventListener('click', () => {
         resetExportColors();
         resetNodeColors();
         highlightColors = [...DEFAULT_HIGHLIGHT_COLORS];
+        lineColorPicker.value = DEFAULT_BORDER_COLOR;
         updateHighlightButtonColors();
         updateGlobalColorPickers();
         updateAllNodesHighlightColor();
@@ -233,16 +395,21 @@ function setupResetButtons() {
         showNotification('Colors reset to default', 'success');
     });
 
+    // Reset Tree Options:
     resetTreeBtn.addEventListener('click', () => {
         resetTreeStructure();
         showNotification('Tree reset to default', 'success');
     });
 
+    // Reset All Options:
     resetAllBtn.addEventListener('click', () => {
         resetExportColors();
         resetFileInput();
-        document.getElementById('export-format').value = 'png';
-        document.getElementById('scale-factor').value = 2;
+        exportFormat.value = 'png';
+        scaleFactor.value = 2;
+        borderThickness.value = 2.5;
+        lineThickness.value = 2;
+        lineColorPicker.value = DEFAULT_BORDER_COLOR;
         resetNodeColors();
         highlightColors = [...DEFAULT_HIGHLIGHT_COLORS];
         resetTreeStructure();
@@ -285,8 +452,8 @@ function resetNodeColors() {
     document.getElementById('node-color').value = treeColor;
     document.getElementById('border-color').value = borderColor;
     document.getElementById('node-transparent').checked = false;
-    document.getElementById('no-node-border').checked = false;
-    document.getElementById('node-border-same-as-text').checked = true;
+    document.getElementById('no-border').checked = false;
+    document.getElementById('border-same-as-text').checked = true;
 }
 
 function updateHighlightButtonColors() {
@@ -294,6 +461,22 @@ function updateHighlightButtonColors() {
         btn.style.backgroundColor = highlightColors[index];
         btn.style.color = getContrastColor(highlightColors[index]);
     });
+}
+
+function updateLineColors() {
+    let lineSameAsBorderCheckbox = document.getElementById('line-same-as-border');
+    let lineColorPicker = document.getElementById('line-color');
+
+    let newLineColor;
+    if (lineSameAsBorderCheckbox.checked) {
+        newLineColor = getCurrentBorderColor();
+    } else {
+        newLineColor = lineColorPicker.value;
+    }
+    document.querySelectorAll('line').forEach(line => {
+        line.setAttribute('stroke', newLineColor);
+    });
+    saveState();
 }
 
 function getContrastColor(hex_color) {
@@ -306,6 +489,29 @@ function getContrastColor(hex_color) {
     const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
     // Return black or white depending on luminance
     return (yiq >= 128) ? 'black' : 'white';
+}
+
+function getCurrentBorderColor(nodeColor = treeColor) {
+    if (document.getElementById('no-border').checked) {
+        return 'transparent';
+    }
+    if (document.getElementById('border-same-as-text').checked) {
+        // Use the nodeColor, defaulting to treeColor if nodeColor is not explicitly provided
+        return getContrastColor(nodeColor);
+    } else {
+        return borderColor;
+    }
+}
+
+function getCurrentLineColor() {
+    if (document.getElementById('no-line').checked) {
+        return 'transparent';
+    }
+    if (document.getElementById('line-same-as-border').checked) {
+        return getCurrentBorderColor();
+    } else {
+        return document.getElementById('line-color').value;
+    }
 }
 
 function updateGlobalColorPickers() {
@@ -433,7 +639,7 @@ function setupNodeMenu() {
                     selectedNode.querySelector('text').setAttribute('fill', getContrastColor(highlightColors[index]));
 
                     // Change the border color if the 'same as text' option is selected
-                    if (document.getElementById('node-border-same-as-text').checked) {
+                    if (document.getElementById('border-same-as-text').checked) {
                         selectedNode.querySelector('circle').setAttribute('stroke', getContrastColor(highlightColors[index]));
                     }
 
@@ -457,7 +663,7 @@ function setupNodeMenu() {
                 selectedNode.querySelector('text').setAttribute('fill', getContrastColor(customHighlight.value));
 
                 // Change the border color if the 'same as text' option is selected
-                if (document.getElementById('node-border-same-as-text').checked) {
+                if (document.getElementById('border-same-as-text').checked) {
                     selectedNode.querySelector('circle').setAttribute('stroke', getContrastColor(customHighlight.value));
                 }
 
@@ -924,7 +1130,7 @@ function renderTree(node, parentElement, mask) {
     }
     nodeGroup.appendChild(linesGroup);
 
-    let lineColor = borderColor === 'transparent' ? document.getElementById('border-color').value : borderColor;
+    let strokeColor = getCurrentLineColor();
 
     node.children.forEach((child) => {
         let x1 = node.x, y1 = node.y, x2 = child.x, y2 = child.y;
@@ -946,8 +1152,9 @@ function renderTree(node, parentElement, mask) {
         line.setAttribute('y1', y1.toString());
         line.setAttribute('x2', x2.toString());
         line.setAttribute('y2', y2.toString());
-        line.setAttribute('stroke', lineColor);
+        line.setAttribute('stroke', strokeColor);
         line.setAttribute('stroke-width', '2');
+        line.classList.add('tree-line');
         linesGroup.appendChild(line);
     });
 
@@ -969,21 +1176,19 @@ function renderNodeElement(node) {
     nodeGroup.classList.add('tree-node');
 
     let nodeColor = treeColor;
-    let strokeColor = borderColor;
 
     if (node.highlight) {
         nodeColor = node.highlight.type === 'custom' ? node.highlight.color : highlightColors[node.highlight.index];
     }
 
-    if (document.getElementById('node-border-same-as-text').checked) {
-        strokeColor = document.getElementById('no-node-border').checked ? nodeColor : getContrastColor(nodeColor);
-    }
+    let strokeColor = getCurrentBorderColor(nodeColor);
+    let strokeSize = document.getElementById('border-thickness').value;
 
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('r', NODE_RADIUS.toString());
     circle.setAttribute('fill', nodeColor);
     circle.setAttribute('stroke', strokeColor);
-    circle.setAttribute('stroke-width', '2.5');
+    circle.setAttribute('stroke-width', strokeSize);
 
     let textFill = getContrastColor(nodeColor);
 

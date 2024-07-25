@@ -104,6 +104,10 @@ button:active {
     gap: 10px;
 }
 
+.pair-container label {
+    flex: 1;
+}
+
 input:focus,
 select:focus {
     outline: none;
@@ -174,7 +178,7 @@ select:focus {
 }
 
 .import-export-section input[type="number"] {
-    width: 40px;
+    width: 45px;
 }
 
 .file-input-wrapper {
@@ -311,7 +315,7 @@ select:focus {
 }
 
 .pair-container-tree-section input[type="number"] {
-    width: 40px;
+    width: 45px;
     padding: 0.5rem;
     background-color: #444444;
 }
@@ -322,7 +326,12 @@ select:focus {
     }
 }
 
-.tree-node {
+.tree-line {
+    transition: all 0.5s ease;
+}
+
+.tree-node,
+.tree-line {
     transition: all 0.5s ease;
 }
 
