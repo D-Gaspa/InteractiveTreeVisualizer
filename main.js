@@ -127,6 +127,8 @@ function setupEventListeners() {
     const borderColorSameAsTextCheckbox = document.getElementById('node-border-same-as-text');
     const containerColorPicker = document.getElementById('container-background-color');
     const containerTransparentCheckbox = document.getElementById('container-transparent-background');
+    const importFileInput = document.getElementById('import-json');
+    const importTreeButton = document.getElementById('import-tree');
     const exportTreeButton = document.getElementById('export-tree');
 
     // Update the tree layout when the window is resized
@@ -206,6 +208,11 @@ function setupEventListeners() {
         updateTreeLayout();
     });
 
+    importFileInput.addEventListener('change', function (e) {
+        this.nextElementSibling.nextElementSibling.textContent = e.target.files[0] ? e.target.files[0].name : 'No file chosen';
+        this.nextElementSibling.nextElementSibling.style.color = e.target.files[0] ? '#d0d0d0' : '#a0a0a0';
+    });
+    importTreeButton.addEventListener('click', importTree);
     exportTreeButton.addEventListener('click', exportTree)
     setupResetButtons();
 }
@@ -233,6 +240,8 @@ function setupResetButtons() {
 
     resetAllBtn.addEventListener('click', () => {
         resetExportColors();
+        resetFileInput();
+        document.getElementById('export-format').value = 'png';
         document.getElementById('scale-factor').value = 2;
         resetNodeColors();
         highlightColors = [...DEFAULT_HIGHLIGHT_COLORS];
@@ -241,6 +250,17 @@ function setupResetButtons() {
         updateGlobalColorPickers();
         showNotification('All settings reset to default', 'success');
     });
+}
+
+function resetFileInput() {
+    const fileInput = document.getElementById('import-json');
+    const fileNameDisplay = document.querySelector('.file-name');
+
+    // Reset the file input
+    fileInput.value = '';
+
+    // Reset the displayed file name
+    fileNameDisplay.textContent = 'No file chosen';
 }
 
 function resetTreeStructure() {
@@ -1048,7 +1068,56 @@ function updateAllNodesHighlightColor(colorIndex, newColor) {
     }
 }
 
-// <------------------------Export Tree------------------------>
+// <------------------------Import/Export Tree------------------------>
+function importTree() {
+    const fileInput = document.getElementById('import-json');
+    const file = fileInput.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                const importedData = JSON.parse(e.target.result.toString());
+                treeData = validateAndTransformTreeData(importedData);
+                updateTreeLayout();
+                showNotification('Tree imported successfully', 'success');
+            } catch (error) {
+                showNotification('Error importing tree: ' + error.message, 'error');
+            }
+        };
+        reader.readAsText(file);
+    } else {
+        showNotification('No file was chosen', 'warning');
+    }
+}
+
+function validateAndTransformTreeData(data) {
+    function processNode(node) {
+        if (typeof node !== 'object' || node === null) {
+            throw new Error('Invalid node structure');
+        }
+
+        const processedNode = {
+            id: node.id || generateUniqueId(),
+            text: node.text || "1",
+            x: node.x || 0,
+            y: node.y || 0,
+            highlight: node.highlight || null,
+            children: []
+        };
+
+        const childrenArray = node.children || [];
+        if (!Array.isArray(childrenArray)) {
+            throw new Error('Children must be an array');
+        }
+
+        processedNode.children = childrenArray.map(child => processNode(child));
+
+        return processedNode;
+    }
+
+    return processNode(data);
+}
+
 function exportTree() {
     const format = document.getElementById('export-format').value;
     switch (format) {
