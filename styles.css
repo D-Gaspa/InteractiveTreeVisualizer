@@ -174,14 +174,26 @@ select:focus {
 }
 
 #tree-options-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 20px;
     background-color: #2a2a2a;
     padding: 20px;
     border-radius: 8px;
     margin-top: 20px;
+}
+
+.options-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+#tree-options-container h3 {
+    color: #ffffff;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.3em;
+    border-bottom: 2px solid #4a4a4a;
+    padding-bottom: 10px;
 }
 
 .tree-option-section {
@@ -190,8 +202,16 @@ select:focus {
     width: 200px;
     background-color: #333333;
     padding: 15px;
+    border: 1px solid transparent;
     border-radius: 6px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.5s ease;
+}
+
+.tree-option-section:hover {
+    border-color: rgba(134, 134, 134, 0.5);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    filter: brightness(1.10);
 }
 
 .tree-option-section h4 {
@@ -221,7 +241,7 @@ select:focus {
 }
 
 .pair-container-tree-section input[type="color"] {
-    width: 50px;
+    width: 45px;
     height: 30px;
 }
 
@@ -237,12 +257,8 @@ select:focus {
 }
 
 @media (max-width: 768px) {
-    #tree-options-container {
-        flex-direction: column;
-    }
-
-    .tree-option-section {
-        width: 100%;
+    .options-grid {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -320,15 +336,6 @@ select:focus {
 
 .highlight-btn {
     flex: 1;
-}
-
-.color-pickers {
-    display: flex;
-    gap: 10px;
-    position: static;
-    transform: none;
-    background-color: transparent;
-    padding: 0;
 }
 
 .color-picker-container {
