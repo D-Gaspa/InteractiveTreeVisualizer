@@ -37,31 +37,30 @@ document.addEventListener('DOMContentLoaded', () => {
     setupGlobalColorPickers();
 });
 
+// <------------------------State Management------------------------>
+
 function loadState() {
     // Load the saved state from local storage
+    loadGlobalInformation();
     loadGeneralOptions();
     loadHighlightColors();
     loadBorderOptions();
     loadLineOptions();
-    // loadImportExportOptions();
+    loadImportExportOptions();
+    updateHighlightButtonColors();
+    updateGlobalColorPickers();
+}
 
-    const scaleFactor = localStorage.getItem('scaleFactor');
-    if (scaleFactor) {
-        document.getElementById('scale-factor').value = scaleFactor;
+function loadGlobalInformation() {
+    const savedTreeData = localStorage.getItem('treeData');
+    if (savedTreeData) {
+        treeData = JSON.parse(savedTreeData);
     }
 
     const savedNodeIDCounter = localStorage.getItem('nodeIDCounter');
     if (savedNodeIDCounter) {
         nodeIDCounter = parseInt(savedNodeIDCounter);
     }
-
-    const savedTreeData = localStorage.getItem('treeData');
-    if (savedTreeData) {
-        treeData = JSON.parse(savedTreeData);
-    }
-
-    updateHighlightButtonColors();
-    updateGlobalColorPickers();
 }
 
 function loadGeneralOptions() {
@@ -138,6 +137,13 @@ function loadLineOptions() {
 
     if (lineThickness) {
         document.getElementById('line-thickness').value = lineThickness;
+    }
+}
+
+function loadImportExportOptions() {
+    const scaleFactor = localStorage.getItem('scaleFactor');
+    if (scaleFactor) {
+        document.getElementById('scale-factor').value = scaleFactor;
     }
 }
 
@@ -275,8 +281,8 @@ function setupBorderOptionsEventListeners() {
         } else {
             let newBorderColor = borderColorPicker.value;
             document.querySelectorAll('.tree-node circle').forEach(circle => {
-            circle.setAttribute('stroke', newBorderColor);
-        });
+                circle.setAttribute('stroke', newBorderColor);
+            });
         }
 
         if (lineSameAsBorderCheckbox && !noLineCheckbox.checked) {
