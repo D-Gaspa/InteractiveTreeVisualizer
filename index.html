@@ -15,32 +15,6 @@
         <div id="tree-container">
             <svg id="tree-svg"></svg>
         </div>
-        <h3>Export Options</h3>
-        <div id="export-options">
-            <div class="pair-container">
-                <label for="scale-factor">Scale Factor:</label>
-                <input type="number" id="scale-factor" value="2" min="0.5" max="5" step="0.5">
-            </div>
-            <div class="pair-container">
-                <label for="container-background-color">Background Color:</label>
-                <input type="color" id="container-background-color" value="#2a2a2a">
-            </div>
-            <div class="pair-container">
-                <input type="checkbox" id="container-transparent-background">
-                <label for="container-transparent-background">Transparent Background</label>
-            </div>
-            <div class="pair-container">
-                <label for="export-format">Export Format:</label>
-                <select id="export-format">
-                    <option value="png">PNG</option>
-                    <option value="svg">SVG</option>
-                    <option value="json">JSON</option>
-                    <option value="jpeg">JPEG</option>
-                </select>
-            </div>
-            <button id="export-tree">Export Tree</button>
-        </div>
-        <div class="divisor"></div>
         <h3>Node Options</h3>
         <div id="node-options">
             <div class="node-section">
@@ -91,6 +65,44 @@
             </div>
         </div>
         <div class="divisor"></div>
+        <h3>Import/Export Options</h3>
+        <div id="import-export-options">
+            <div id="import-options">
+                <div class="pair-container">
+                    <div class="file-input-wrapper">
+                        <input type="file" id="import-json" accept=".json">
+                        <label for="import-json" class="file-input-button">Choose File</label>
+                        <span class="file-name">No file chosen</span>
+                    </div>
+                    <button id="import-tree">Import Tree (JSON)</button>
+                </div>
+            </div>
+            <div id="export-options">
+                <div class="pair-container">
+                    <label for="scale-factor">Scale Factor:</label>
+                    <input type="number" id="scale-factor" value="2" min="0.5" max="5" step="0.5">
+                </div>
+                <div class="pair-container">
+                    <label for="container-background-color">Background Color:</label>
+                    <input type="color" id="container-background-color" value="#2a2a2a">
+                </div>
+                <div class="pair-container">
+                    <input type="checkbox" id="container-transparent-background">
+                    <label for="container-transparent-background">Transparent Background</label>
+                </div>
+                <div class="pair-container">
+                    <label for="export-format">Export Format:</label>
+                    <select id="export-format">
+                        <option value="png">PNG</option>
+                        <option value="svg">SVG</option>
+                        <option value="json">JSON</option>
+                        <option value="jpeg">JPEG</option>
+                    </select>
+                </div>
+                <button id="export-tree">Export Tree</button>
+            </div>
+        </div>
+        <div class="divisor"></div>
         <h3>Reset Options</h3>
         <div class="reset-buttons">
             <button id="reset-colors">Reset Colors</button>
@@ -98,9 +110,6 @@
             <button class="btn-danger" id="reset-all">Reset All</button>
         </div>
     </main>
-    <footer>
-        <p>Interactive Tree Visualizer</p>
-    </footer>
 </div>
 <div id="node-menu" class="node-menu hidden">
     <label for="node-value"></label><input type="text" id="node-value" placeholder="Node Value">
