@@ -19,15 +19,23 @@
             <h3>Tree Options</h3>
             <div class="options-grid">
                 <div class="tree-option-section">
-                    <h4>Node Options</h4>
+                    <h4>General Options</h4>
                     <div class="section-content">
                         <div class="pair-container-tree-section">
-                            <label for="node-color">Color:</label>
+                            <label for="node-color">Node Color:</label>
                             <input type="color" id="node-color" value="#4CAF50">
+                        </div>
+                        <div class="pair-container-tree-section">
+                            <label for="container-background-color">Background Color:</label>
+                            <input type="color" id="container-background-color" value="#2a2a2a">
                         </div>
                         <div class="pair-container-tree-section">
                             <input type="checkbox" id="node-transparent">
                             <label for="node-transparent">Transparent Node</label>
+                        </div>
+                        <div class="pair-container-tree-section">
+                            <input type="checkbox" id="container-transparent-background">
+                            <label for="container-transparent-background">Transparent Background</label>
                         </div>
                     </div>
                 </div>
@@ -92,42 +100,39 @@
                 </div>
             </div>
         </div>
-        <div class="divisor"></div>
-        <h3>Import/Export Options</h3>
-        <div id="import-export-options">
-            <div id="import-options">
-                <div class="pair-container">
-                    <div class="file-input-wrapper">
-                        <input type="file" id="import-json" accept=".json">
-                        <label for="import-json" class="file-input-button">Choose File</label>
-                        <span class="file-name">No file chosen</span>
+        <div id="import-export-container">
+            <h3>Import/Export Options</h3>
+            <div class="import-export-grid">
+                <div class="import-export-section">
+                    <h4><i class="fas fa-file-import"></i> Import</h4>
+                    <div class="section-content">
+                        <div class="file-input-wrapper">
+                            <input type="file" id="import-json" accept=".json">
+                            <label for="import-json" class="file-input-button">Choose File</label>
+                            <span class="file-name">No file chosen</span>
+                        </div>
+                        <button id="import-tree">Import Tree (JSON)</button>
                     </div>
-                    <button id="import-tree">Import Tree (JSON)</button>
                 </div>
-            </div>
-            <div id="export-options">
-                <div class="pair-container">
-                    <label for="scale-factor">Scale Factor:</label>
-                    <input type="number" id="scale-factor" value="2" min="0.5" max="5" step="0.5">
+                <div class="import-export-section">
+                    <h4><i class="fas fa-file-export"></i> Export</h4>
+                    <div class="section-content">
+                        <div class="pair-container">
+                            <label for="scale-factor">Scale Factor:</label>
+                            <input type="number" id="scale-factor" value="2" min="0.5" max="5" step="0.5">
+                        </div>
+                        <div class="pair-container">
+                            <label for="export-format">Export Format:</label>
+                            <select id="export-format">
+                                <option value="png">PNG</option>
+                                <option value="svg">SVG</option>
+                                <option value="json">JSON</option>
+                                <option value="jpeg">JPEG</option>
+                            </select>
+                        </div>
+                        <button id="export-tree">Export Tree</button>
+                    </div>
                 </div>
-                <div class="pair-container">
-                    <label for="container-background-color">Background Color:</label>
-                    <input type="color" id="container-background-color" value="#2a2a2a">
-                </div>
-                <div class="pair-container">
-                    <input type="checkbox" id="container-transparent-background">
-                    <label for="container-transparent-background">Transparent Background</label>
-                </div>
-                <div class="pair-container">
-                    <label for="export-format">Export Format:</label>
-                    <select id="export-format">
-                        <option value="png">PNG</option>
-                        <option value="svg">SVG</option>
-                        <option value="json">JSON</option>
-                        <option value="jpeg">JPEG</option>
-                    </select>
-                </div>
-                <button id="export-tree">Export Tree</button>
             </div>
         </div>
         <div class="divisor"></div>
