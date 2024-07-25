@@ -15,78 +15,81 @@
         <div id="tree-container">
             <svg id="tree-svg"></svg>
         </div>
-        <h3>Tree Options</h3>
         <div id="tree-options-container">
-            <div class="tree-option-section">
-                <h4>Node Options</h4>
-                <div class="section-content">
-                    <div class="pair-container-tree-section">
-                        <label for="node-color">Color:</label>
-                        <input type="color" id="node-color" value="#4CAF50">
-                    </div>
-                    <div class="pair-container-tree-section">
-                        <input type="checkbox" id="node-transparent">
-                        <label for="node-transparent">Transparent Node</label>
-                    </div>
-                </div>
-            </div>
-            <div class="tree-option-section">
-                <h4>Border Options</h4>
-                <div class="section-content">
-                    <div class="pair-container-tree-section">
-                        <label for="border-color">Color:</label>
-                        <input type="color" id="border-color" value="#ffffff">
-                    </div>
-                    <div class="pair-container-tree-section">
-                        <label for="border-thickness">Thickness:</label>
-                        <input type="number" id="border-thickness" value="2" min="1" max="10" step="1">
-                    </div>
-                    <div class="pair-container-tree-section">
-                        <input type="checkbox" id="node-border-same-as-text">
-                        <label for="node-border-same-as-text">Same as Text</label>
-                    </div>
-                    <div class="pair-container-tree-section">
-                        <input type="checkbox" id="no-node-border">
-                        <label for="no-node-border">No Border</label>
+            <h3>Tree Options</h3>
+            <div class="options-grid">
+                <div class="tree-option-section">
+                    <h4>Node Options</h4>
+                    <div class="section-content">
+                        <div class="pair-container-tree-section">
+                            <label for="node-color">Color:</label>
+                            <input type="color" id="node-color" value="#4CAF50">
+                        </div>
+                        <div class="pair-container-tree-section">
+                            <input type="checkbox" id="node-transparent">
+                            <label for="node-transparent">Transparent Node</label>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="tree-option-section">
-                <h4>Line Options</h4>
-                <div class="section-content">
-                    <div class="pair-container-tree-section">
-                        <label for="line-color">Color:</label>
-                        <input type="color" id="line-color" value="#ffffff">
-                    </div>
-                    <div class="pair-container-tree-section">
-                        <label for="line-thickness">Thickness:</label>
-                        <input type="number" id="line-thickness" value="2" min="1" max="10" step="1">
-                    </div>
-                    <div class="pair-container-tree-section">
-                        <input type="checkbox" id="line-same-as-border">
-                        <label for="line-same-as-border">Same as Border</label>
-                    </div>
-                    <div class="pair-container-tree-section">
-                        <input type="checkbox" id="no-line">
-                        <label for="no-line">No Line</label>
+                <div class="tree-option-section">
+                    <h4>Highlight Options</h4>
+                    <div id="global-color-pickers" class="section-content">
+                        <div class="pair-container-tree-section">
+                            <label for="highlight1">Highlight 1:</label>
+                            <input type="color" id="highlight1" value="#FF5733">
+                        </div>
+                        <div class="pair-container-tree-section">
+                            <label for="highlight2">Highlight 2:</label>
+                            <input type="color" id="highlight2" value="#33FF57">
+                        </div>
+                        <div class="pair-container-tree-section">
+                            <label for="highlight3">Highlight 3:</label>
+                            <input type="color" id="highlight3" value="#3357FF">
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        <div class="divisor"></div>
-        <h3>Highlight Options</h3>
-        <div id="global-color-pickers" class="color-pickers">
-            <div class="color-picker-container">
-                <label for="highlight1">Highlight 1:</label>
-                <input type="color" id="highlight1" value="#FF5733">
-            </div>
-            <div class="color-picker-container">
-                <label for="highlight2">Highlight 2:</label>
-                <input type="color" id="highlight2" value="#33FF57">
-            </div>
-            <div class="color-picker-container">
-                <label for="highlight3">Highlight 3:</label>
-                <input type="color" id="highlight3" value="#3357FF">
+                <div class="tree-option-section">
+                    <h4>Border Options</h4>
+                    <div class="section-content">
+                        <div class="pair-container-tree-section">
+                            <label for="border-color">Color:</label>
+                            <input type="color" id="border-color" value="#ffffff">
+                        </div>
+                        <div class="pair-container-tree-section">
+                            <label for="border-thickness">Thickness:</label>
+                            <input type="number" id="border-thickness" value="2.5" min="1" max="5" step="0.5">
+                        </div>
+                        <div class="pair-container-tree-section">
+                            <input type="checkbox" id="node-border-same-as-text">
+                            <label for="node-border-same-as-text">Same as Text</label>
+                        </div>
+                        <div class="pair-container-tree-section">
+                            <input type="checkbox" id="no-node-border">
+                            <label for="no-node-border">No Border</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="tree-option-section">
+                    <h4>Line Options</h4>
+                    <div class="section-content">
+                        <div class="pair-container-tree-section">
+                            <label for="line-color">Color:</label>
+                            <input type="color" id="line-color" value="#ffffff">
+                        </div>
+                        <div class="pair-container-tree-section">
+                            <label for="line-thickness">Thickness:</label>
+                            <input type="number" id="line-thickness" value="2" min="1" max="5" step="0.5">
+                        </div>
+                        <div class="pair-container-tree-section">
+                            <input type="checkbox" id="line-same-as-border">
+                            <label for="line-same-as-border">Same as Border</label>
+                        </div>
+                        <div class="pair-container-tree-section">
+                            <input type="checkbox" id="no-line">
+                            <label for="no-line">No Line</label>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="divisor"></div>
