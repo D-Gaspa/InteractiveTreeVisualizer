@@ -54,7 +54,13 @@ function loadState() {
 function loadGlobalInformation() {
     const savedTreeData = localStorage.getItem('treeData');
     if (savedTreeData) {
-        treeData = JSON.parse(savedTreeData);
+        try {
+            const parsedData = JSON.parse(savedTreeData);
+            treeData = validateAndTransformTreeData(parsedData);
+        } catch (error) {
+            console.error('Failed to load tree data:', error);
+            treeData = JSON.parse(JSON.stringify(DEFAULT_TREE_DATA));
+        }
     }
 
     const savedNodeIDCounter = localStorage.getItem('nodeIDCounter');
@@ -1308,7 +1314,7 @@ function validateAndTransformTreeData(data) {
         }
 
         const processedNode = {
-            id: node.id || generateUniqueId(),
+            id: generateUniqueId(),
             text: node.text || "1",
             x: node.x || 0,
             y: node.y || 0,
