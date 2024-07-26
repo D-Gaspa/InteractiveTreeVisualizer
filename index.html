@@ -145,22 +145,37 @@
     </main>
 </div>
 <div id="node-menu" class="node-menu hidden">
-    <label for="node-value"></label><input type="text" id="node-value" placeholder="Node Value">
-    <button class="btn-add" id="add-child">Add Child</button>
-    <div class="highlight-section">
-        <label>Preset Highlights:</label>
-        <div class="highlight-buttons">
-            <button class="highlight-btn" data-index="0">H1</button>
-            <button class="highlight-btn" data-index="1">H2</button>
-            <button class="highlight-btn" data-index="2">H3</button>
+    <div class="menu-header">
+        <h3>Node Properties</h3>
+        <span id="selected-count"></span>
+    </div>
+    <div class="menu-content">
+        <div class="node-properties">
+            <label for="node-value">Node Value:</label>
+            <input type="text" id="node-value" placeholder="Enter node value">
+            <div class="node-id-container">
+                <label for="node-id">Node ID:</label>
+                <span id="node-id" class="node-id"></span>
+            </div>
+        </div>
+        <div class="highlight-options">
+            <h4>Highlight Options</h4>
+            <div class="preset-highlights">
+                <button class="highlight-btn" data-index="0">H1</button>
+                <button class="highlight-btn" data-index="1">H2</button>
+                <button class="highlight-btn" data-index="2">H3</button>
+            </div>
+            <div class="custom-highlight">
+                <label for="custom-highlight">Custom Color:</label>
+                <input type="color" id="custom-highlight" value="#000000">
+            </div>
+            <button id="remove-highlight">Remove Highlight</button>
+        </div>
+        <div class="node-actions">
+            <button id="add-child" class="btn-primary">Add Child</button>
+            <button id="delete-node" class="btn-danger">Delete Node</button>
         </div>
     </div>
-    <div class="custom-highlight-section">
-        <label>Custom Highlight Color:</label>
-        <label for="custom-highlight"></label><input type="color" id="custom-highlight" value="#000000">
-    </div>
-    <button id="remove-highlight" class="btn-danger">Remove Highlight</button>
-    <button id="delete-node" class="btn-danger">Delete Node</button>
 </div>
 
 <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;"></div>
