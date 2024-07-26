@@ -55,6 +55,10 @@ button, input, select {
     transition: all 0.3s ease;
 }
 
+input[type="text"], input[type="number"] {
+    cursor: text;
+}
+
 button:hover {
     filter: brightness(0.85);
     transform: scale(1.02);
@@ -98,6 +102,13 @@ button:active {
     margin: 20px auto;
 }
 
+input:focus,
+select:focus {
+    outline: none;
+    border: 1px solid #d7d7d7;
+    box-shadow: 0 0 5px rgb(133, 133, 133);
+}
+
 .pair-container {
     display: flex;
     align-items: center;
@@ -106,13 +117,6 @@ button:active {
 
 .pair-container label {
     flex: 1;
-}
-
-input:focus,
-select:focus {
-    outline: none;
-    border: 1px solid #d7d7d7;
-    box-shadow: 0 0 5px rgb(133, 133, 133);
 }
 
 #import-export-container {
@@ -204,6 +208,12 @@ select:focus {
 .file-input-wrapper .file-input-button:hover {
     filter: brightness(0.85);
     transform: scale(1.02);
+}
+
+.file-input-wrapper .file-input-button:active {
+    outline: none;
+    border: 1px solid #ffffff;
+    box-shadow: 0 0 5px rgb(133, 133, 133);
 }
 
 .file-input-wrapper .file-name {
@@ -354,74 +364,139 @@ select:focus {
 }
 
 .node-menu {
-    position: absolute;
-    background-color: #333;
-    border: 1px solid #555;
-    border-radius: 5px;
-    padding: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    position: fixed;
+    top: 0;
+    right: -300px;
+    width: 280px;
+    background-color: #2a2a2a;
+    border-left: 1px solid #444;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+    transition: right 0.3s ease-in-out;
     z-index: 1000;
-    transition: opacity 0.3s, transform 0.3s;
+}
+
+.node-menu.visible {
+    right: 0;
+}
+
+.menu-header {
+    background-color: #333;
+    padding: 15px;
+    border-bottom: 1px solid #444;
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    width: 200px;
-    height: 340px;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.node-menu.hidden {
-    display: none;
-    opacity: 0;
-    transform: scale(0.95);
-    pointer-events: none;
+.menu-header h3 {
+    margin: 0;
+    color: #fff;
 }
 
-.node-menu input,
-.node-menu button {
+.node-menu h4 {
+    margin: 0;
+    color: #fff;
+}
+
+.node-id-container {
+    display: flex;
+    align-content: center;
+    margin: 10px 0;
+
+}
+
+.node-id-container label {
+    margin-right: 10px;
+}
+
+.node-id {
+    color: #4CAF50;
+    font-weight: bold;
+    font-style: italic;
+}
+
+#selected-count {
+    background-color: #2ea395;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.9em;
+}
+
+.menu-content {
+    padding: 15px;
+}
+
+.node-properties, .highlight-options, .node-actions {
+    margin-bottom: 20px;
+}
+
+.node-menu label {
     display: block;
     margin-bottom: 5px;
+    color: #ddd;
+}
+
+.node-menu input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    background-color: #444;
+    border-radius: 4px;
+    box-sizing: border-box;
+    cursor: text;
 }
 
 .node-menu input[type="color"] {
     width: 100%;
-}
-
-.node-menu input[type="text"] {
+    padding: 4px;
+    margin-bottom: 10px;
     background-color: #444;
+    border: 1px solid #555;
     color: #fff;
+    border-radius: 4px;
 }
 
-.highlight-section,
-.custom-highlight-section {
+.preset-highlights {
     display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.highlight-buttons {
-    display: flex;
-    gap: 5px;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
 .highlight-btn {
     flex: 1;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
-.color-picker-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.node-menu button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
-.color-picker-container input[type="color"] {
-    border: 1px solid #555;
-    background: none;
+#remove-highlight.active {
+    background-color: #f44336;
 }
 
-.color-picker-container input[type="color"]:focus {
-    outline: none;
-    border: 1px solid #ffffff;
-    box-shadow: 0 0 5px rgb(133, 133, 133);
+#remove-highlight.inactive {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.btn-danger {
+    background-color: #f44336;
+    color: white;
 }
 
 h3 {

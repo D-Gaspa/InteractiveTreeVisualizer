@@ -2,6 +2,7 @@ const DEFAULT_CONTAINER_BACKGROUND_COLOR = '#2a2a2a';
 const DEFAULT_TREE_COLOR = '#2EA395';
 const DEFAULT_BORDER_COLOR = '#ffffff';
 const DEFAULT_HIGHLIGHT_COLORS = ['#3FB116', '#C20F0F', '#2175C4'];
+const DEFAULT_CUSTOM_HIGHLIGHT_COLOR = '#091E39';
 const DEFAULT_TREE_DATA = {
     id: 0,
     text: '1',
@@ -16,7 +17,7 @@ const HORIZONTAL_SPACING = 150;
 const VERTICAL_MARGIN = 50;
 const HORIZONTAL_MARGIN = 50;
 
-let selectedNode = null;
+let selectedNodesIDs = new Set();
 let containerBackgroundColor = DEFAULT_CONTAINER_BACKGROUND_COLOR;
 let treeColor = DEFAULT_TREE_COLOR;
 let borderColor = DEFAULT_BORDER_COLOR;
@@ -278,17 +279,19 @@ function setupBorderOptionsEventListeners() {
 
     // Border Same As Text Checkbox:
     borderSameAsTextCheckbox.addEventListener('change', () => {
-        if (borderSameAsTextCheckbox.checked) {
-            document.querySelectorAll('.tree-node circle').forEach(circle => {
-                // get the node color
-                const nodeColor = circle.getAttribute('fill');
-                circle.setAttribute('stroke', getContrastColor(nodeColor));
-            });
-        } else {
-            let newBorderColor = borderColorPicker.value;
-            document.querySelectorAll('.tree-node circle').forEach(circle => {
-                circle.setAttribute('stroke', newBorderColor);
-            });
+        if (!noBorderCheckbox.checked) {
+            if (borderSameAsTextCheckbox.checked) {
+                document.querySelectorAll('.tree-node circle').forEach(circle => {
+                    // get the node color
+                    const nodeColor = circle.getAttribute('fill');
+                    circle.setAttribute('stroke', getContrastColor(nodeColor));
+                });
+            } else {
+                let newBorderColor = borderColorPicker.value;
+                document.querySelectorAll('.tree-node circle').forEach(circle => {
+                    circle.setAttribute('stroke', newBorderColor);
+                });
+            }
         }
 
         if (lineSameAsBorderCheckbox && !noLineCheckbox.checked) {
@@ -305,7 +308,13 @@ function setupBorderOptionsEventListeners() {
             newBorderColor = 'transparent';
         } else {
             if (borderSameAsTextCheckbox.checked) {
-                newBorderColor = getContrastColor(treeColor);
+                document.querySelectorAll('.tree-node circle').forEach(circle => {
+                    // get the node color
+                    const nodeColor = circle.getAttribute('fill');
+                    newBorderColor = getContrastColor(nodeColor);
+                    circle.setAttribute('stroke', newBorderColor);
+                });
+                return;
             } else {
                 newBorderColor = borderColorPicker.value;
             }
@@ -570,219 +579,267 @@ function showNotification(message, type = 'info', duration = 3000) {
 }
 
 function reapplySelection() {
-    if (selectedNode) {
-        const nodeId = selectedNode.dataset.id;
-        const node = document.querySelector(`.tree-node[data-id="${nodeId}"]`);
-        if (node) {
-            selectNode(node);
-        }
+    if (selectedNodesIDs.size > 0) {
+        selectedNodesIDs.forEach(selectedNodeID => {
+            let node = findNodeById(treeData, selectedNodeID);
+            if (node) {
+                selectNode(node, true);
+            }
+        });
     }
 }
 
 function generateUniqueId() {
-    return ++nodeIDCounter;
+    let newId = nodeIDCounter++;
+
+    if (treeData) {
+        while (findNodeById(treeData, newId)) {
+            newId = nodeIDCounter++;
+        }
+    }
+
+    return newId;
 }
 
 // <------------------------Node Menu------------------------>
 
 function setupNodeMenu() {
-    const nodeMenu = document.getElementById('node-menu');
     const nodeValue = document.getElementById('node-value');
     const addChildBtn = document.getElementById('add-child');
-    const deleteNodeBtn = document.getElementById('delete-node');
-    const removeHighlightBtn = document.getElementById('remove-highlight');
     const customHighlight = document.getElementById('custom-highlight');
+    const removeHighlightBtn = document.getElementById('remove-highlight');
+    const deleteNodeBtn = document.getElementById('delete-node');
 
-    document.addEventListener('click', (e) => {
-        if (!nodeMenu.contains(e.target) && e.target.tagName !== 'circle') {
-            // Hide the node menu and deselect the node
-            hideNodeMenu();
+    document.addEventListener('click', handleDocumentClick);
+    nodeValue.addEventListener('input', handleNodeValueInput);
+    addChildBtn.addEventListener('click', handleAddChild);
+    removeHighlightBtn.addEventListener('click', handleRemoveHighlight);
+    customHighlight.addEventListener('input', handleCustomHighlight);
+    deleteNodeBtn.addEventListener('click', handleDeleteNode);
 
-            // Remove 'selected' class from all nodes
-            document.querySelectorAll('.tree-node').forEach(node => {
-                node.classList.remove('selected');
-            });
+    setupHighlightButtons();
+}
+
+function toggleNodeMenu(show) {
+    const nodeMenu = document.getElementById('node-menu');
+    if (show) {
+        nodeMenu.classList.remove('hidden');
+        setTimeout(() => nodeMenu.classList.add('visible'), 10);
+    } else {
+        nodeMenu.classList.remove('visible');
+        setTimeout(() => nodeMenu.classList.add('hidden'), 300);
+    }
+}
+
+function handleDocumentClick(e) {
+    const nodeMenu = document.getElementById('node-menu');
+    if (!nodeMenu.contains(e.target) && e.target.tagName !== 'circle') {
+        toggleNodeMenu(false);
+        document.querySelectorAll('.tree-node').forEach(node => {
+            node.classList.remove('selected');
+        });
+        selectedNodesIDs.clear();
+    }
+}
+
+function handleNodeValueInput() {
+    selectedNodesIDs.forEach(selectedNodeID => {
+        const node = findNodeById(treeData, selectedNodeID);
+        if (node) {
+            node.text = this.value;
+            const domNode = document.querySelector(`.tree-node[data-id="${selectedNodeID}"]`);
+            if (domNode) {
+                domNode.querySelector('text').textContent = this.value;
+            }
+            saveState();
         }
     });
+}
 
-    nodeValue.addEventListener('input', () => {
-        if (selectedNode) {
-            const nodeId = selectedNode.dataset.id;
-            const node = findNodeById(treeData, nodeId);
+function handleAddChild() {
+    if (selectedNodesIDs.size === 1) {
+        const nodeId = Array.from(selectedNodesIDs)[0];
+        const parentNode = findNodeById(treeData, nodeId);
+        if (parentNode) {
+            let id = generateUniqueId();
+            const newChild = {
+                id: id,
+                text: parentNode.text,
+                x: 0,
+                y: 0,
+                children: [],
+                highlight: null
+            }
+            parentNode.children.push(newChild);
+            updateTreeLayout();
+            showNotification('Child node added', 'success');
+        }
+    }
+}
+
+function handleDeleteNode() {
+    let count = 0;
+    selectedNodesIDs.forEach(selectedNodeID => {
+        if (selectedNodeID !== treeData.id) {
+            const node = findNodeById(treeData, selectedNodeID);
             if (node) {
-                node.text = nodeValue.value;
-                selectedNode.querySelector('text').textContent = nodeValue.value;
-                saveState();
+                removeNodeFromTree(treeData, selectedNodeID.toString());
+                count++;
             }
+        }
+        else {
+            showNotification('Cannot delete the root node', 'warning');
         }
     });
 
-    addChildBtn.addEventListener('click', () => {
-        if (selectedNode) {
-            const nodeId = selectedNode.dataset.id;
-            const parentNode = findNodeById(treeData, nodeId);
-            if (parentNode) {
-                let id = generateUniqueId();
-                const newChild = {
-                    id: id,
-                    text: parentNode.text,
-                    x: 0,
-                    y: 0,
-                    children: [],
-                    highlight: null
-                }
-                parentNode.children.push(newChild);
-                updateTreeLayout();
-                showNotification('Child node added', 'success');
+    if (count > 0) {
+        if (count === 1) {
+            showNotification('Node deleted', 'success');
+        } else {
+            showNotification(`${count} nodes deleted`, 'success');
+        }
+    }
+
+    // Clear selected nodes and hide the node menu
+    selectedNodesIDs.clear();
+    toggleNodeMenu(false);
+    updateTreeLayout();
+}
+
+function handleRemoveHighlight() {
+    let count = 0;
+    selectedNodesIDs.forEach(selectedNodeID => {
+        const node = findNodeById(treeData, selectedNodeID);
+        if (node && node.highlight) {
+            node.highlight = null;
+            const borderColor = getCurrentBorderColor(treeColor);
+
+            const selectedNode = document.querySelector(`.tree-node[data-id="${selectedNodeID}"]`);
+            if (selectedNode) {
+                selectedNode.querySelector('circle').setAttribute('fill', treeColor);
+                selectedNode.querySelector('text').setAttribute('fill', getContrastColor(treeColor));
+                selectedNode.querySelector('circle').setAttribute('stroke', borderColor);
             }
+            count++;
         }
     });
 
+    if (count > 0) {
+        if (count === 1) {
+            showNotification('Highlight removed', 'success');
+        } else {
+            showNotification(`${count} highlights removed`, 'success');
+        }
+        saveState();
+    } else {
+        showNotification('No highlights to remove', 'warning');
+    }
+
+    updateNodeMenu();
+}
+
+function handleCustomHighlight() {
+    selectedNodesIDs.forEach(selectedNodeID => {
+        const node = findNodeById(treeData, selectedNodeID);
+        if (node) {
+            applyHighlight(node, {type: 'custom', color: this.value});
+            saveState();
+        }
+    });
+}
+
+function setupHighlightButtons() {
     document.querySelectorAll('.highlight-btn').forEach((btn, index) => {
         btn.addEventListener('click', () => {
-            if (selectedNode) {
-                const nodeId = selectedNode.dataset.id;
-                const node = findNodeById(treeData, nodeId);
+            selectedNodesIDs.forEach(selectedNodeID => {
+                const node = findNodeById(treeData, selectedNodeID);
                 if (node) {
-                    node.highlight = {type: 'global', index: index};
-                    selectedNode.querySelector('circle').setAttribute('fill', highlightColors[index]);
-
-                    // Change text color based on contrast
-                    selectedNode.querySelector('text').setAttribute('fill', getContrastColor(highlightColors[index]));
-
-                    // Change the border color if the 'same as text' option is selected
-                    if (document.getElementById('border-same-as-text').checked) {
-                        selectedNode.querySelector('circle').setAttribute('stroke', getContrastColor(highlightColors[index]));
-                    }
-
-                    // Update the remove highlight button color to indicate that a highlight is present
-                    removeHighlightBtn.style.backgroundColor = '#dc3545';
+                    applyHighlight(node, {type: 'global', index: index});
                     saveState();
                 }
-            }
+            });
         });
     });
-
-    customHighlight.addEventListener('input', () => {
-        if (selectedNode) {
-            const nodeId = selectedNode.dataset.id;
-            const node = findNodeById(treeData, nodeId);
-            if (node) {
-                node.highlight = {type: 'custom', color: customHighlight.value};
-                selectedNode.querySelector('circle').setAttribute('fill', customHighlight.value);
-
-                // Change text color based on contrast
-                selectedNode.querySelector('text').setAttribute('fill', getContrastColor(customHighlight.value));
-
-                // Change the border color if the 'same as text' option is selected
-                if (document.getElementById('border-same-as-text').checked) {
-                    selectedNode.querySelector('circle').setAttribute('stroke', getContrastColor(customHighlight.value));
-                }
-
-                // Update the remove highlight button color to indicate that a highlight is present
-                removeHighlightBtn.style.backgroundColor = '#dc3545';
-                saveState();
-            }
-        }
-    });
-
-    removeHighlightBtn.addEventListener('click', () => {
-        if (selectedNode) {
-            const nodeId = selectedNode.dataset.id;
-            const node = findNodeById(treeData, nodeId);
-            if (node) {
-                // Check if the node does not have a highlight
-                if (!node.highlight) {
-                    showNotification('Node does not have a highlight', 'warning');
-                    return;
-                }
-
-                node.highlight = null;
-                selectedNode.querySelector('circle').setAttribute('fill', treeColor);
-                selectedNode.querySelector('circle').setAttribute('stroke', borderColor);
-                selectedNode.querySelector('text').setAttribute('fill', getContrastColor(treeColor));
-
-                // Update the remove highlight button color to a disabled state
-                removeHighlightBtn.style.backgroundColor = '#4a4a4a';
-
-                showNotification('Highlight removed', 'success');
-                saveState();
-            }
-        }
-    });
-
-    deleteNodeBtn.addEventListener('click', () => {
-        if (selectedNode && selectedNode.dataset.id !== treeData.id.toString()) {
-            const nodeId = selectedNode.dataset.id;
-            removeNodeFromTree(treeData, nodeId);
-            selectedNode.remove();
-            updateTreeLayout();
-            hideNodeMenu();
-            showNotification('Node deleted', 'success');
-            saveState();
-        } else {
-            showNotification('Cannot delete root node', 'error');
-        }
-    });
 }
 
-function showNodeMenu(node) {
-    const nodeMenu = document.getElementById('node-menu');
-    const rect = node.getBoundingClientRect();
-    let left = rect.right + window.scrollX;
-    let top = rect.top + window.scrollY + rect.height;
+function applyHighlight(node, highlight) {
+    node.highlight = highlight;
+    const color = highlight.type === 'custom' ? highlight.color : highlightColors[highlight.index];
 
-    nodeMenu.classList.remove('hidden');
+    const selectedNode = document.querySelector(`.tree-node[data-id="${node.id}"]`);
+    selectedNode.querySelector('circle').setAttribute('fill', color);
+    selectedNode.querySelector('text').setAttribute('fill', getContrastColor(color));
 
-    const menuWidth = nodeMenu.offsetWidth;
-    const menuHeight = nodeMenu.offsetHeight;
-    const screenWidth = window.innerWidth || document.documentElement.clientWidth;
-    const screenHeight = window.innerHeight || document.documentElement.clientHeight;
-
-    // Ensure the menu does not go off the horizontal edge of the screen
-    if (left < 20) {
-        left = 20; // Set a minimum value
-    } else if (left + menuWidth + 20 > screenWidth) {
-        left = screenWidth - menuWidth - 20;
+    if (document.getElementById('border-same-as-text').checked && !document.getElementById('no-border').checked) {
+        selectedNode.querySelector('circle').setAttribute('stroke', getContrastColor(color));
     }
 
-    // Ensure the menu does not go off the vertical edge of the screen
-    if (top < 20) {
-        top = 20; // Set a minimum value
-    } else if (top + menuHeight + 20 > screenHeight) {
-        top = screenHeight - menuHeight - 20;
-    }
+    updateNodeMenu();
+}
 
-    nodeMenu.style.position = 'absolute';
-    nodeMenu.style.left = `${left}px`;
-    nodeMenu.style.top = `${top}px`;
-
-    const nodeValue = document.getElementById('node-value');
-    const customHighlight = document.getElementById('custom-highlight');
+function updateNodeMenu() {
+    const selectedCount = document.getElementById('selected-count');
+    const addChildBtn = document.getElementById('add-child');
+    const nodeValueInput = document.getElementById('node-value');
+    const nodeIdSpan = document.getElementById('node-id');
+    const customHighlightInput = document.getElementById('custom-highlight');
     const removeHighlightBtn = document.getElementById('remove-highlight');
-    const nodeId = node.dataset.id;
-    const treeNode = findNodeById(treeData, nodeId);
+    const deleteNodeBtn = document.getElementById('delete-node');
 
-    selectedNode = node;
-    nodeValue.value = treeNode.text;
+    selectedCount.textContent = `${selectedNodesIDs.size} selected`;
 
-    if (treeNode.highlight) {
-        if (treeNode.highlight.type === 'custom') {
-            customHighlight.value = treeNode.highlight.color;
+    if (selectedNodesIDs.size === 1) {
+        const nodeID = Array.from(selectedNodesIDs)[0];
+        const node = findNodeById(treeData, nodeID);
+        nodeValueInput.previousElementSibling.textContent = 'Node Value:';
+        nodeValueInput.value = node.text;
+        nodeValueInput.placeholder = 'Enter node value';
+        nodeValueInput.disabled = false;
+        nodeIdSpan.previousElementSibling.textContent = 'Node ID:';
+        nodeIdSpan.textContent = node.id;
+        addChildBtn.style.display = 'block';
+        removeHighlightBtn.textContent = 'Remove Highlight';
+        deleteNodeBtn.textContent = 'Delete Node';
+
+        // Set custom highlight color
+        if (node.highlight && node.highlight.type === 'custom') {
+            customHighlightInput.value = node.highlight.color;
         } else {
-            customHighlight.value = '#091E39';
+            customHighlightInput.value = DEFAULT_CUSTOM_HIGHLIGHT_COLOR;
         }
-        removeHighlightBtn.style.backgroundColor = '#dc3545';
-    } else {
-        customHighlight.value = '#091E39';
-        removeHighlightBtn.style.backgroundColor = '#4a4a4a';
-    }
-}
 
-function hideNodeMenu() {
-    const nodeMenu = document.getElementById('node-menu');
-    nodeMenu.classList.add('hidden');
-    selectedNode = null;
+        // Set remove highlight button state
+        if (node.highlight) {
+            removeHighlightBtn.classList.add('active');
+            removeHighlightBtn.classList.remove('inactive');
+        } else {
+            removeHighlightBtn.classList.add('inactive');
+            removeHighlightBtn.classList.remove('active');
+        }
+    } else {
+        nodeValueInput.previousElementSibling.textContent = 'Node Values:';
+        nodeValueInput.value = '';
+        nodeValueInput.placeholder = 'Enter node values';
+        nodeIdSpan.previousElementSibling.textContent = 'Node IDs:';
+        nodeIdSpan.textContent = 'Multiple';
+        addChildBtn.style.display = 'none';
+        removeHighlightBtn.textContent = 'Remove Highlights';
+        deleteNodeBtn.textContent = 'Delete Nodes';
+
+        // Check if any selected node has a highlight
+        const anyHighlight = Array.from(selectedNodesIDs).some(nodeID => {
+            return findNodeById(treeData, nodeID).highlight
+        });
+        if (anyHighlight) {
+            removeHighlightBtn.classList.add('active');
+            removeHighlightBtn.classList.remove('inactive');
+        } else {
+            removeHighlightBtn.classList.add('inactive');
+            removeHighlightBtn.classList.remove('active');
+        }
+    }
+
+    toggleNodeMenu(selectedNodesIDs.size > 0);
 }
 
 // <------------------------Tree Operations------------------------>
@@ -1217,8 +1274,9 @@ function renderNodeElement(node) {
 
     nodeGroup.addEventListener('click', (e) => {
         e.stopPropagation();
-        showNodeMenu(nodeGroup);
-        selectNode(nodeGroup);
+        updateNodeMenu();
+        let multiSelect = e.ctrlKey || e.shiftKey;
+        selectNode(node, multiSelect);
     });
 
     nodeGroup.addEventListener('mouseover', () => {
@@ -1234,17 +1292,23 @@ function renderNodeElement(node) {
     return nodeGroup;
 }
 
-function selectNode(nodeGroup) {
-    // Remove 'selected' class from all nodes
-    document.querySelectorAll('.tree-node').forEach(node => {
-        node.classList.remove('selected');
-    });
+function selectNode(node, multiSelect = false) {
+    if (!multiSelect) {
+        document.querySelectorAll('.tree-node').forEach(node => {
+            node.classList.remove('selected');
+        });
+
+        selectedNodesIDs.clear();
+    }
+
+    // Add the clicked node to the selected nodes
+    selectedNodesIDs.add(node.id);
 
     // Add 'selected' class to the clicked node
+    const nodeGroup = document.querySelector(`.tree-node[data-id="${node.id}"]`);
     nodeGroup.classList.add('selected');
 
-    // Update the selected node
-    selectedNode = nodeGroup;
+    updateNodeMenu();
 }
 
 function removeNodeFromTree(node, id) {
@@ -1258,7 +1322,7 @@ function removeNodeFromTree(node, id) {
 }
 
 function findNodeById(node, id) {
-    if (node.id.toString() === id) {
+    if (node.id.toString() === id.toString()) {
         return node;
     }
     for (let child of node.children) {
