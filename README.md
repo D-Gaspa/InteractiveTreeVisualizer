@@ -13,9 +13,10 @@ Experience the Interactive Tree Visualizer firsthand! Click the link above to tr
 ### Tree Manipulation
 - **Dynamic Tree Creation**: Build and modify tree structures on the fly.
 - **Intuitive Node Manipulation**: 
-  - Add child nodes to any existing node.
+  - Add child nodes to any existing node (using the UI or Enter key).
   - Edit node text with a simple click.
-  - Delete nodes (except the root) effortlessly.
+  - Delete nodes (except the root) effortlessly (using the UI or Backspace/Delete keys).
+- **Multi-node Selection**: Select multiple nodes using Ctrl/Shift click for bulk operations.
 
 ### Advanced Layout Algorithm
 - Automatically adjusts layout based on tree structure.
@@ -26,18 +27,39 @@ Experience the Interactive Tree Visualizer firsthand! Click the link above to tr
 ### Customizable Appearance
 - Highlight nodes with preset or custom colors.
 - Customize node and border colors to suit your preferences.
+- Customize node and border sizes for better visibility and tailored appearance.
 - Option for transparent nodes and borders.
 - Automatic contrast adjustment for text color based on node color.
+- Improved node properties display for single and multiple selections.
 
 ### Interactive User Interface
-- User-friendly node menu for quick edits and manipulations.
+- User-friendly slide-in node menu panel for quick edits and manipulations.
 - Global color pickers for easy customization.
-- Hover effects and selection indicators provide immediate visual feedback, making tree manipulation intuitive.
+- Hover effects and selection indicators provide immediate visual feedback.
+- Enhanced UI for managing single and multiple node selections.
+
+### Keyboard Navigation and Shortcuts
+- Arrow key navigation:
+  - Up: Move to parent node
+  - Down: Move to middle child node
+  - Left/Right: Move between sibling nodes
+- Enter: Add a child node to the selected node
+- Backspace/Delete: Remove selected node(s)
+- Ctrl+A: Select all nodes
+
+### Import Functionality
+- Import tree structures from JSON files.
+- Automatically validates and transforms imported data to match the expected structure.
+- Seamlessly integrates imported trees into the visualizer for immediate editing and manipulation.
 
 ### Export Functionality
-- Export your tree as a high-quality PNG image.
+- Export your tree in multiple formats:
+  - PNG: High-quality raster image
+  - SVG: Scalable vector graphic
+  - JSON: Data format for easy parsing and manipulation
+  - JPEG: Compressed raster image
 - Customize export options including scale factor and background color.
-- Option for a transparent background in exported images.
+- Option for a transparent background in exported images (PNG and SVG).
 
 ### State Management
 - Automatically saves and loads tree state using local storage.
@@ -55,13 +77,10 @@ Experience the Interactive Tree Visualizer firsthand! Click the link above to tr
 
 I am always looking to enhance the Interactive Tree Visualizer. Some features I am considering for future updates:
 
-1. **Advanced Export Options**: Introduce SVG export and data export in JSON format.
-2. **Subtree Collapsing**: Implement the ability to collapse and expand subtrees for better navigation of large
-   structures.
-3. **Accessibility Improvements**: Add and improve mouse and keyboard navigation and shortcuts.
-4. **Drag-and-Drop Functionality**: Allow users to rearrange nodes by dragging and dropping.
-5. **Undo/Redo Functionality**: Implement a history stack for undoing and redoing tree modifications.
-6. **Themes**: Offer multiple color themes and allow users to create custom themes.
+1. **Subtree Collapsing**: Implement the ability to collapse and expand subtrees for better navigation of large structures.
+2. **Drag-and-Drop Functionality**: Allow users to rearrange nodes by dragging and dropping.
+3. **Undo/Redo Functionality**: Implement a history stack for undoing and redoing tree modifications.
+4. **Themes**: Offer multiple color themes and allow users to create custom themes.
 
 I welcome contributions and suggestions from the community to make the Interactive Tree Visualizer even better!
 

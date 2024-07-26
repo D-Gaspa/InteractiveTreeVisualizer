@@ -462,6 +462,7 @@ function findParentNodeId(nodeId) {
         }
         return null;
     }
+
     return search(treeData);
 }
 
