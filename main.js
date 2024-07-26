@@ -193,6 +193,8 @@ function setupEventListeners() {
     setupLineOptionsEventListeners();
     setupImportExportEventListeners();
     setupResetButtons();
+
+    setupKeyboardShortcuts();
 }
 
 function setupGeneralOptionsEventListeners() {
@@ -391,6 +393,130 @@ function setupImportExportEventListeners() {
         saveState()
     });
     exportTreeButton.addEventListener('click', exportTree)
+}
+
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', function (event) {
+        if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+            // Delete selected node(s) on backspace or delete key press
+            if (selectedNodesIDs.size > 0 && (event.key === 'Backspace' || event.key === 'Delete')) {
+                event.preventDefault(); // Prevent the browser's back action on backspace
+                handleDeleteNode();
+            }
+
+            // Add a child node to the selected node on enter key press
+            if (selectedNodesIDs.size === 1 && event.key === 'Enter') {
+                handleAddChild();
+            }
+
+            // Move the selected node with arrow keys
+            if (selectedNodesIDs.size === 1) {
+                const currentNodeId = Array.from(selectedNodesIDs)[0];
+                let newSelectedNodeId = null;
+
+                switch (event.key) {
+                    case 'ArrowUp':
+                        event.preventDefault(); // Prevent scrolling
+                        newSelectedNodeId = findParentNodeId(currentNodeId);
+                        break;
+                    case 'ArrowDown':
+                        event.preventDefault(); // Prevent scrolling
+                        newSelectedNodeId = findMiddleChildNodeId(currentNodeId);
+                        break;
+                    case 'ArrowLeft':
+                        newSelectedNodeId = findPreviousSiblingId(currentNodeId);
+                        break;
+                    case 'ArrowRight':
+                        newSelectedNodeId = findNextSiblingId(currentNodeId);
+                        break;
+                }
+
+                if (newSelectedNodeId !== null) {
+                    selectedNodesIDs.clear();
+                    selectedNodesIDs.add(newSelectedNodeId);
+                    updateNodeSelection();
+                    updateNodeMenu();
+                }
+            }
+
+            // If control + a, select all nodes
+            if (event.ctrlKey && event.key === 'a') {
+                event.preventDefault();
+                selectedNodesIDs.clear();
+                selectAllNodes(treeData);
+                updateNodeSelection();
+                updateNodeMenu();
+            }
+        }
+    });
+}
+
+function findParentNodeId(nodeId) {
+    function search(node) {
+        for (let child of node.children) {
+            if (child.id === nodeId) {
+                return node.id;
+            }
+            const result = search(child);
+            if (result) return result;
+        }
+        return null;
+    }
+    return search(treeData);
+}
+
+function findMiddleChildNodeId(nodeId) {
+    const node = findNodeById(treeData, nodeId);
+    if (node.children.length === 0) return null;
+
+    // Calculate the index of the middle child
+    const middleIndex = Math.floor((node.children.length - 1) / 2);
+    return node.children[middleIndex].id;
+}
+
+function findPreviousSiblingId(nodeId) {
+    const parent = findParentNodeObject(treeData, nodeId);
+    if (!parent) return null;
+    const index = parent.children.findIndex(child => child.id === nodeId);
+    return index > 0 ? parent.children[index - 1].id : null;
+}
+
+function findNextSiblingId(nodeId) {
+    const parent = findParentNodeObject(treeData, nodeId);
+    if (!parent) return null;
+    const index = parent.children.findIndex(child => child.id === nodeId);
+    return index < parent.children.length - 1 ? parent.children[index + 1].id : null;
+}
+
+function findParentNodeObject(node, targetId) {
+    if (node.children.some(child => child.id === targetId)) {
+        return node;
+    }
+    for (let child of node.children) {
+        const result = findParentNodeObject(child, targetId);
+        if (result) return result;
+    }
+    return null;
+}
+
+function selectAllNodes(node) {
+    selectedNodesIDs.add(node.id);
+    node.children.forEach(child => selectAllNodes(child));
+}
+
+function updateNodeSelection() {
+    // Deselect all nodes visually
+    document.querySelectorAll('.tree-node').forEach(node => {
+        node.classList.remove('selected');
+    });
+
+    // Select the new node visually
+    selectedNodesIDs.forEach(id => {
+        const nodeElement = document.querySelector(`.tree-node[data-id="${id}"]`);
+        if (nodeElement) {
+            nodeElement.classList.add('selected');
+        }
+    });
 }
 
 function setupResetButtons() {
@@ -686,8 +812,7 @@ function handleDeleteNode() {
                 removeNodeFromTree(treeData, selectedNodeID.toString());
                 count++;
             }
-        }
-        else {
+        } else {
             showNotification('Cannot delete the root node', 'warning');
         }
     });
@@ -696,7 +821,7 @@ function handleDeleteNode() {
         if (count === 1) {
             showNotification('Node deleted', 'success');
         } else {
-            showNotification(`${count} nodes deleted`, 'success');
+            showNotification(`Nodes deleted`, 'success');
         }
     }
 
