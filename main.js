@@ -26,7 +26,7 @@ let highlightColors = DEFAULT_HIGHLIGHT_COLORS;
 let treeData = null;
 let nodesByDepth = {};
 let nodeIDCounter = 0;
-let MAX_COLLISION_ITERATIONS = 30;
+let MAX_COLLISION_ITERATIONS = 50;
 
 // <------------------------Initialization------------------------>
 document.addEventListener('DOMContentLoaded', () => {
@@ -1006,7 +1006,7 @@ function updateSVGViewBox() {
 
     // Resolve collisions at each depth
     for (let depth in nodesByDepth) {
-        resolveCollisionsAtDepth(nodesByDepth[depth]);
+        resolveCollisionsAtDepth(nodesByDepth[depth], depth);
     }
 
     // Calculate actual dimensions based on node positions
@@ -1113,16 +1113,16 @@ function positionImmediateChildNodes(parentNode) {
     });
 }
 
-function resolveCollisionsAtDepth(nodes) {
+function resolveCollisionsAtDepth(nodes, depth) {
     if (!nodes || nodes.length <= 1) return;
 
     // Create a copy of the original nodes array
     let originalNodes = [...nodes];
     originalNodes.sort((a, b) => a.x - b.x);
 
-    let nodesByParent = groupNodesByParentAndSort(originalNodes);
+    let sortedParentGroups = groupNodesByParentAndSort(originalNodes);
 
-    let involvedParents = getFirstCollisionGroupParents(nodesByParent);
+    let involvedParents = getFirstCollisionGroupParents(sortedParentGroups);
 
     if (involvedParents.length < 1) {
         return;
@@ -1136,7 +1136,7 @@ function resolveCollisionsAtDepth(nodes) {
         resolveChildCollisions(involvedParents);
 
         // Check if there are still collisions after resolving
-        let updatedInvolvedParents = getFirstCollisionGroupParents(nodesByParent);
+        let updatedInvolvedParents = getFirstCollisionGroupParents(sortedParentGroups);
 
         if (updatedInvolvedParents.length < 1) {
             // No more collisions, exit the loop
@@ -1156,40 +1156,55 @@ function resolveCollisionsAtDepth(nodes) {
     }
 
     if (iteration === MAX_COLLISION_ITERATIONS) {
-        showNotification('Could not resolve all collisions, some nodes may overlap', 'warning');
+        showNotification(`Could not resolve all collisions, some nodes may overlap at depth ${depth}`, 'warning');
     }
 }
 
 function groupNodesByParentAndSort(nodes) {
     let nodesByParent = {};
+    let parents = new Set();
+
+    // Group nodes by parent
     nodes.forEach(node => {
-        let parent = findParentNode(treeData, node);
-        if (!nodesByParent[parent.id]) {
-            nodesByParent[parent.id] = [];
+        let parentID = findParentNodeId(node.id);
+        if (!nodesByParent[parentID]) {
+            nodesByParent[parentID] = [];
+            parents.add(parentID);
         }
-        nodesByParent[parent.id].push(node);
+        nodesByParent[parentID].push(node);
     });
 
     // Sort nodes within each parent group
     Object.values(nodesByParent).forEach(group => {
         group.sort((a, b) => a.x - b.x);
     });
-    return nodesByParent;
+
+    // Create an array of parent-children pairs, sorted by parent's x position
+    return Array.from(parents)
+        .map(parentID => {
+            let parentNode = findNodeById(treeData, parentID);
+            return {
+                parent: parentNode,
+                children: nodesByParent[parentID]
+            };
+        })
+        .sort((a, b) => a.parent.x - b.parent.x);
 }
 
-function getFirstCollisionGroupParents(nodesByParent) {
-    let parentNodes = Object.keys(nodesByParent).map(id => findNodeById(treeData, id));
+function getFirstCollisionGroupParents(sortedParentGroups) {
     let involvedParents = new Set();
 
     // Check for collisions between nodes of different parents
-    for (let i = 0; i < parentNodes.length; i++) {
-        let currentParent = parentNodes[i];
-        let currentParentNodes = nodesByParent[currentParent.id];
+    for (let i = 0; i < sortedParentGroups.length; i++) {
+        let currentGroup = sortedParentGroups[i];
+        let currentParent = currentGroup.parent;
+        let currentParentNodes = currentGroup.children;
         involvedParents.add(currentParent);
 
-        for (let j = i + 1; j < parentNodes.length; j++) {
-            let nextParent = parentNodes[j];
-            let nextParentNodes = nodesByParent[nextParent.id];
+        for (let j = i + 1; j < sortedParentGroups.length; j++) {
+            let nextGroup = sortedParentGroups[j];
+            let nextParent = nextGroup.parent;
+            let nextParentNodes = nextGroup.children;
 
             // Check if the rightmost node of the current parent collides with the leftmost node of the next parent
             if (nextParentNodes[0].x - currentParentNodes[currentParentNodes.length - 1].x < HORIZONTAL_SPACING) {
@@ -1249,17 +1264,6 @@ function updateSubtreePositions(node) {
         positionImmediateChildNodes(node);
         node.children.forEach(updateSubtreePositions);
     }
-}
-
-function findParentNode(root, targetNode) {
-    if (root.children.includes(targetNode)) {
-        return root;
-    }
-    for (let child of root.children) {
-        const found = findParentNode(child, targetNode);
-        if (found) return found;
-    }
-    return null;
 }
 
 function calculateIntersectionPoint(x1, y1, x2, y2, cx, cy, r) {
@@ -1462,17 +1466,19 @@ function updateAllNodesHighlightColor(colorIndex, newColor) {
     const updateNodeColor = (node) => {
         if (node.highlight && node.highlight.type === 'global' && node.highlight.index === colorIndex) {
             node.highlight.color = newColor; // Update the node's highlight color
+
+            const selectedNode = document.querySelector(`.tree-node[data-id="${node.id}"]`);
+            selectedNode.querySelector('circle').setAttribute('fill', newColor);
+            selectedNode.querySelector('text').setAttribute('fill', getContrastColor(newColor));
+
+            if (document.getElementById('border-same-as-text').checked && !document.getElementById('no-border').checked) {
+                selectedNode.querySelector('circle').setAttribute('stroke', getContrastColor(newColor));
+            }
         }
         node.children.forEach(updateNodeColor);
     };
 
-    if (treeData) {
-        updateNodeColor(treeData);
-        const svg = document.getElementById('tree-svg');
-        svg.innerHTML = ''; // Clear existing tree
-        const mask = createSVGMask(svg);
-        renderTree(treeData, svg, mask);
-    }
+    updateNodeColor(treeData);
 }
 
 // <------------------------Import/Export Tree------------------------>
