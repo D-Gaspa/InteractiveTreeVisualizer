@@ -397,6 +397,10 @@ function setupImportExportEventListeners() {
 
 function setupKeyboardShortcuts() {
     document.addEventListener('keydown', function (event) {
+        if (document.activeElement.id === 'node-value' && event.key === 'Escape') {
+            document.activeElement.blur();
+        }
+
         if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
             // Delete selected node(s) on backspace or delete key press
             if (selectedNodesIDs.size > 0 && (event.key === 'Backspace' || event.key === 'Delete')) {
@@ -405,7 +409,7 @@ function setupKeyboardShortcuts() {
             }
 
             // Add a child node to the selected node on enter key press
-            if (selectedNodesIDs.size === 1 && event.key === 'Enter') {
+            if (selectedNodesIDs.size === 1 && event.key === 'Enter' && document.activeElement.id !== 'node-value') {
                 handleAddChild();
             }
 
@@ -417,17 +421,19 @@ function setupKeyboardShortcuts() {
                 switch (event.key) {
                     case 'ArrowUp':
                         event.preventDefault(); // Prevent scrolling
-                        newSelectedNodeId = findParentNodeId(currentNodeId);
+                        newSelectedNodeId = findParentNodeID(currentNodeId);
                         break;
                     case 'ArrowDown':
                         event.preventDefault(); // Prevent scrolling
-                        newSelectedNodeId = findMiddleChildNodeId(currentNodeId);
+                        newSelectedNodeId = findMiddleChildNodeID(currentNodeId);
                         break;
                     case 'ArrowLeft':
-                        newSelectedNodeId = findPreviousSiblingId(currentNodeId);
+                        event.preventDefault(); // Prevent scrolling
+                        newSelectedNodeId = findPreviousSiblingID(currentNodeId);
                         break;
                     case 'ArrowRight':
-                        newSelectedNodeId = findNextSiblingId(currentNodeId);
+                        event.preventDefault(); // Prevent scrolling
+                        newSelectedNodeId = findNextSiblingID(currentNodeId);
                         break;
                 }
 
@@ -437,6 +443,30 @@ function setupKeyboardShortcuts() {
                     updateNodeSelection();
                     updateNodeMenu();
                 }
+            }
+
+            // Focus on the node value input on 'e' key press
+            if (document.getElementById('node-menu').classList.contains('visible')) {
+                if (event.key === 'e') {
+                    event.preventDefault();
+                    document.getElementById('node-value').focus();
+                }
+            }
+
+            // If no node is selected, select the root node on 'r' key press
+            if (selectedNodesIDs.size === 0 && event.key === 'r') {
+                event.preventDefault();
+                selectedNodesIDs.add(treeData.id);
+                updateNodeSelection();
+                updateNodeMenu();
+            }
+
+            // If the node menu is open, close it on 'Escape' key press
+            if (document.getElementById('node-menu').classList.contains('visible') && event.key === 'Escape') {
+                event.preventDefault();
+                toggleNodeMenu(false);
+                selectedNodesIDs.clear();
+                updateNodeSelection();
             }
 
             // If control + a, select all nodes
@@ -451,7 +481,7 @@ function setupKeyboardShortcuts() {
     });
 }
 
-function findParentNodeId(nodeId) {
+function findParentNodeID(nodeId) {
     function search(node) {
         for (let child of node.children) {
             if (child.id === nodeId) {
@@ -462,42 +492,78 @@ function findParentNodeId(nodeId) {
         }
         return null;
     }
-
     return search(treeData);
 }
 
-function findMiddleChildNodeId(nodeId) {
+function findMiddleChildNodeID(nodeId) {
     const node = findNodeById(treeData, nodeId);
-    if (node.children.length === 0) return null;
+    if (node.children.length === 0) {
+        // If no children, find the closest node in the next depth
+        const currentDepth = findNodeDepth(nodeId);
+        const nextDepth = currentDepth + 1;
+        if (nodesByDepth[nextDepth]) {
+            return findClosestNodeInDepth(node.x, nextDepth);
+        }
+        return null;
+    }
 
-    // Calculate the index of the middle child
     const middleIndex = Math.floor((node.children.length - 1) / 2);
     return node.children[middleIndex].id;
 }
 
-function findPreviousSiblingId(nodeId) {
-    const parent = findParentNodeObject(treeData, nodeId);
-    if (!parent) return null;
-    const index = parent.children.findIndex(child => child.id === nodeId);
-    return index > 0 ? parent.children[index - 1].id : null;
+function findPreviousSiblingID(nodeId) {
+    const currentDepth = findNodeDepth(nodeId);
+    const nodesAtDepth = nodesByDepth[currentDepth];
+    const currentIndex = nodesAtDepth.findIndex(node => node.id === nodeId);
+
+    if (currentIndex > 0) {
+        return nodesAtDepth[currentIndex - 1].id;
+    }
+
+    // If no previous sibling, find the closest node to the left
+    return findClosestNodeInDepth(nodesAtDepth[currentIndex].x, currentDepth, 'left');
 }
 
-function findNextSiblingId(nodeId) {
-    const parent = findParentNodeObject(treeData, nodeId);
-    if (!parent) return null;
-    const index = parent.children.findIndex(child => child.id === nodeId);
-    return index < parent.children.length - 1 ? parent.children[index + 1].id : null;
+function findNextSiblingID(nodeId) {
+    const currentDepth = findNodeDepth(nodeId);
+    const nodesAtDepth = nodesByDepth[currentDepth];
+    const currentIndex = nodesAtDepth.findIndex(node => node.id === nodeId);
+
+    if (currentIndex < nodesAtDepth.length - 1) {
+        return nodesAtDepth[currentIndex + 1].id;
+    }
+
+    // If no next sibling, find the closest node to the right
+    return findClosestNodeInDepth(nodesAtDepth[currentIndex].x, currentDepth, 'right');
 }
 
-function findParentNodeObject(node, targetId) {
-    if (node.children.some(child => child.id === targetId)) {
-        return node;
+function findNodeDepth(nodeId) {
+    for (let depth in nodesByDepth) {
+        if (nodesByDepth[depth].some(node => node.id === nodeId)) {
+            return parseInt(depth);
+        }
     }
-    for (let child of node.children) {
-        const result = findParentNodeObject(child, targetId);
-        if (result) return result;
+    return -1; // Node not found
+}
+
+function findClosestNodeInDepth(x, depth, direction = 'both') {
+    const nodesAtDepth = nodesByDepth[depth];
+    if (!nodesAtDepth || nodesAtDepth.length === 0) return null;
+
+    let closestNode = null;
+    let minDistance = Infinity;
+
+    for (let node of nodesAtDepth) {
+        const distance = Math.abs(node.x - x);
+        if (direction === 'left' && node.x >= x) continue;
+        if (direction === 'right' && node.x <= x) continue;
+        if (distance < minDistance) {
+            minDistance = distance;
+            closestNode = node;
+        }
     }
-    return null;
+
+    return closestNode ? closestNode.id : null;
 }
 
 function selectAllNodes(node) {
@@ -1166,7 +1232,7 @@ function groupNodesByParentAndSort(nodes) {
 
     // Group nodes by parent
     nodes.forEach(node => {
-        let parentID = findParentNodeId(node.id);
+        let parentID = findParentNodeID(node.id);
         if (!nodesByParent[parentID]) {
             nodesByParent[parentID] = [];
             parents.add(parentID);
