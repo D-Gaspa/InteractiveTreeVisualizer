@@ -397,8 +397,15 @@ function setupImportExportEventListeners() {
 
 function setupKeyboardShortcuts() {
     document.addEventListener('keydown', function (event) {
-        if (document.activeElement.id === 'node-value' && event.key === 'Escape') {
-            document.activeElement.blur();
+        if (event.key === 'Escape') {
+            if (document.activeElement.id === 'node-value') {
+                document.activeElement.blur();
+            } else if (document.getElementById('node-menu').classList.contains('visible')) {
+                event.preventDefault();
+                toggleNodeMenu(false);
+                selectedNodesIDs.clear();
+                updateNodeSelection();
+            }
         }
 
         if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
@@ -461,14 +468,6 @@ function setupKeyboardShortcuts() {
                 updateNodeMenu();
             }
 
-            // If the node menu is open, close it on 'Escape' key press
-            if (document.getElementById('node-menu').classList.contains('visible') && event.key === 'Escape') {
-                event.preventDefault();
-                toggleNodeMenu(false);
-                selectedNodesIDs.clear();
-                updateNodeSelection();
-            }
-
             // If control + a, select all nodes
             if (event.ctrlKey && event.key === 'a') {
                 event.preventDefault();
@@ -492,6 +491,7 @@ function findParentNodeID(nodeId) {
         }
         return null;
     }
+
     return search(treeData);
 }
 
@@ -621,8 +621,8 @@ function setupResetButtons() {
         resetFileInput();
         exportFormat.value = 'png';
         scaleFactor.value = 2;
-        borderThickness.value = 2.5;
-        lineThickness.value = 2;
+        borderThickness.value = 3;
+        lineThickness.value = 3;
         lineColorPicker.value = DEFAULT_BORDER_COLOR;
         resetNodeColors();
         highlightColors = [...DEFAULT_HIGHLIGHT_COLORS];
