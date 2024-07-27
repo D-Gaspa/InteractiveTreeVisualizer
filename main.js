@@ -408,16 +408,21 @@ function setupKeyboardShortcuts() {
             }
         }
 
+        if (event.key === 'Enter') {
+            if (document.activeElement.id === 'node-value') {
+                event.preventDefault();
+                document.activeElement.blur();
+            } else if (document.getElementById('node-menu').classList.contains('visible') && selectedNodesIDs.size === 1) {
+                event.preventDefault();
+                document.getElementById('add-child').click();
+            }
+        }
+
         if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
             // Delete selected node(s) on backspace or delete key press
             if (selectedNodesIDs.size > 0 && (event.key === 'Backspace' || event.key === 'Delete')) {
                 event.preventDefault(); // Prevent the browser's back action on backspace
                 handleDeleteNode();
-            }
-
-            // Add a child node to the selected node on enter key press
-            if (selectedNodesIDs.size === 1 && event.key === 'Enter' && document.activeElement.id !== 'node-value') {
-                handleAddChild();
             }
 
             // Move the selected node with arrow keys
@@ -457,6 +462,7 @@ function setupKeyboardShortcuts() {
                 if (event.key === 'e') {
                     event.preventDefault();
                     document.getElementById('node-value').focus();
+                    document.getElementById('node-value').select();
                 }
             }
 
