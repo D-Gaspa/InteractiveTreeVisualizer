@@ -193,7 +193,6 @@ function setupEventListeners() {
     setupLineOptionsEventListeners();
     setupImportExportEventListeners();
     setupResetButtons();
-
     setupKeyboardShortcuts();
 }
 

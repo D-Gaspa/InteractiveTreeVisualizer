@@ -64,6 +64,10 @@ button:hover {
     transform: scale(1.02);
 }
 
+input:hover, select:hover {
+    filter: brightness(0.85);
+}
+
 button:active {
     outline: none;
     border: 1px solid #ffffff;
