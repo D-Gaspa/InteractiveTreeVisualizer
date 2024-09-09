@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Interactive Tree Visualizer</title>
-    <link rel="stylesheet" href="src/css/styles.css">
-    <link rel="icon" type="image/png" href="src/assets/ITV-icon.png">
+    <link href="src/css/styles.css" rel="stylesheet">
+    <link href="src/assets/ITV-icon.png" rel="icon" type="image/png">
 </head>
 <body>
 <div id="app">
@@ -24,36 +24,36 @@
                     <div class="section-content">
                         <div class="pair-container-tree-section">
                             <label for="node-color">Node Color:</label>
-                            <input type="color" id="node-color" value="#4CAF50">
+                            <input id="node-color" type="color" value="#4CAF50">
                         </div>
                         <div class="pair-container-tree-section">
                             <label for="container-background-color">Background Color:</label>
-                            <input type="color" id="container-background-color" value="#2a2a2a">
+                            <input id="container-background-color" type="color" value="#2a2a2a">
                         </div>
                         <div class="pair-container-tree-section">
-                            <input type="checkbox" id="node-transparent">
+                            <input id="node-transparent" type="checkbox">
                             <label for="node-transparent">Transparent Node</label>
                         </div>
                         <div class="pair-container-tree-section">
-                            <input type="checkbox" id="container-transparent-background">
+                            <input id="container-transparent-background" type="checkbox">
                             <label for="container-transparent-background">Transparent Background</label>
                         </div>
                     </div>
                 </div>
                 <div class="tree-option-section">
                     <h4>Highlight Options</h4>
-                    <div id="global-color-pickers" class="section-content">
+                    <div class="section-content" id="global-color-pickers">
                         <div class="pair-container-tree-section">
                             <label for="highlight1">Highlight 1:</label>
-                            <input type="color" id="highlight1" value="#FF5733">
+                            <input id="highlight1" type="color" value="#FF5733">
                         </div>
                         <div class="pair-container-tree-section">
                             <label for="highlight2">Highlight 2:</label>
-                            <input type="color" id="highlight2" value="#33FF57">
+                            <input id="highlight2" type="color" value="#33FF57">
                         </div>
                         <div class="pair-container-tree-section">
                             <label for="highlight3">Highlight 3:</label>
-                            <input type="color" id="highlight3" value="#3357FF">
+                            <input id="highlight3" type="color" value="#3357FF">
                         </div>
                     </div>
                 </div>
@@ -62,18 +62,18 @@
                     <div class="section-content">
                         <div class="pair-container-tree-section">
                             <label for="border-color">Color:</label>
-                            <input type="color" id="border-color" value="#ffffff">
+                            <input id="border-color" type="color" value="#ffffff">
                         </div>
                         <div class="pair-container-tree-section">
                             <label for="border-thickness">Thickness:</label>
-                            <input type="number" id="border-thickness" value="2.5" min="1" max="5" step="0.5">
+                            <input id="border-thickness" max="5" min="1" step="0.5" type="number" value="2.5">
                         </div>
                         <div class="pair-container-tree-section">
-                            <input type="checkbox" id="border-same-as-text">
+                            <input id="border-same-as-text" type="checkbox">
                             <label for="border-same-as-text">Same as Text</label>
                         </div>
                         <div class="pair-container-tree-section">
-                            <input type="checkbox" id="no-border">
+                            <input id="no-border" type="checkbox">
                             <label for="no-border">No Border</label>
                         </div>
                     </div>
@@ -83,18 +83,18 @@
                     <div class="section-content">
                         <div class="pair-container-tree-section">
                             <label for="line-color">Color:</label>
-                            <input type="color" id="line-color" value="#ffffff">
+                            <input id="line-color" type="color" value="#ffffff">
                         </div>
                         <div class="pair-container-tree-section">
                             <label for="line-thickness">Thickness:</label>
-                            <input type="number" id="line-thickness" value="2" min="1" max="5" step="0.5">
+                            <input id="line-thickness" max="5" min="1" step="0.5" type="number" value="2">
                         </div>
                         <div class="pair-container-tree-section">
-                            <input type="checkbox" id="line-same-as-border">
+                            <input id="line-same-as-border" type="checkbox">
                             <label for="line-same-as-border">Same as Border</label>
                         </div>
                         <div class="pair-container-tree-section">
-                            <input type="checkbox" id="no-line">
+                            <input id="no-line" type="checkbox">
                             <label for="no-line">No Line</label>
                         </div>
                     </div>
@@ -108,8 +108,8 @@
                     <h4><i class="fas fa-file-import"></i> Import</h4>
                     <div class="section-content">
                         <div class="file-input-wrapper">
-                            <input type="file" id="import-json" accept=".json">
-                            <label for="import-json" class="file-input-button">Choose File</label>
+                            <input accept=".json" id="import-json" type="file">
+                            <label class="file-input-button" for="import-json">Choose File</label>
                             <span class="file-name">No file chosen</span>
                         </div>
                         <button id="import-tree">Import Tree (JSON)</button>
@@ -120,7 +120,7 @@
                     <div class="section-content">
                         <div class="pair-container">
                             <label for="scale-factor">Scale Factor:</label>
-                            <input type="number" id="scale-factor" value="2" min="0.5" max="5" step="0.5">
+                            <input id="scale-factor" max="5" min="0.5" step="0.5" type="number" value="2">
                         </div>
                         <div class="pair-container">
                             <label for="export-format">Export Format:</label>
@@ -145,7 +145,7 @@
         </div>
     </main>
 </div>
-<div id="node-menu" class="node-menu hidden">
+<div class="node-menu hidden" id="node-menu">
     <div class="menu-header">
         <h3>Node Properties</h3>
         <span id="selected-count"></span>
@@ -153,10 +153,10 @@
     <div class="menu-content">
         <div class="node-properties">
             <label for="node-value">Node Value:</label>
-            <input type="text" id="node-value" placeholder="Enter node value">
+            <input id="node-value" placeholder="Enter node value" type="text">
             <div class="node-id-container">
                 <label for="node-id">Node ID:</label>
-                <span id="node-id" class="node-id"></span>
+                <input class="node-id" id="node-id" readonly type="text">
             </div>
         </div>
         <div class="highlight-options">
@@ -168,19 +168,19 @@
             </div>
             <div class="custom-highlight">
                 <label for="custom-highlight">Custom Color:</label>
-                <input type="color" id="custom-highlight" value="#000000">
+                <input id="custom-highlight" type="color" value="#000000">
             </div>
             <button id="remove-highlight">Remove Highlight</button>
         </div>
         <div class="node-actions">
-            <button id="add-child" class="btn-primary">Add Child</button>
-            <button id="delete-node" class="btn-danger">Delete Node</button>
+            <button class="btn-primary" id="add-child">Add Child</button>
+            <button class="btn-danger" id="delete-node">Delete Node</button>
         </div>
     </div>
 </div>
 
 <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;"></div>
 
-<script type="module" src="src/js/main.js"></script>
+<script src="src/js/main.js" type="module"></script>
 </body>
 </html>
