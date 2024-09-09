@@ -15,7 +15,8 @@ import {
 } from "./sharedState.js"
 import {
     DEFAULT_BORDER_COLOR,
-    DEFAULT_CONTAINER_BACKGROUND_COLOR, DEFAULT_HIGHLIGHT_COLORS,
+    DEFAULT_CONTAINER_BACKGROUND_COLOR,
+    DEFAULT_HIGHLIGHT_COLORS,
     DEFAULT_TREE_COLOR,
     DEFAULT_TREE_DATA
 } from "./constants.js"
@@ -193,14 +194,15 @@ export function resetTreeStructure() {
     updateTreeLayout()
 }
 
-export function resetColors(lineColorPicker) {
+export function resetColors() {
     resetExportColors()
     resetNodeColors()
     setHighlightColors([...DEFAULT_HIGHLIGHT_COLORS])
-    lineColorPicker.value = DEFAULT_BORDER_COLOR
     updateHighlightButtonColors()
     updateGlobalColorPickers()
     updateAllNodesHighlightColor()
+    resetLineColors()
+    resetTreeStructure()
 }
 
 function resetExportColors() {
@@ -218,4 +220,10 @@ function resetNodeColors() {
     document.getElementById('node-transparent').checked = false
     document.getElementById('no-border').checked = false
     document.getElementById('border-same-as-text').checked = true
+}
+
+function resetLineColors() {
+    setLineColor(DEFAULT_BORDER_COLOR)
+    document.getElementById('line-color').value = DEFAULT_BORDER_COLOR
+    document.getElementById('line-same-as-border').checked = true
 }

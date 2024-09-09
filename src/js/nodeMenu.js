@@ -1,4 +1,4 @@
-import {clearSelectedNodeIDs, getHighlightColors, getSelectedNodesIDs, getTreeColor, getTreeData} from "./sharedState.js"
+import {clearSelectedNodes, getHighlightColors, getSelectedNodes, getTreeColor, getTreeData} from "./sharedState.js"
 import {findNodeById, generateUniqueId, removeNodeFromTree, updateTreeLayout} from "./treeOperations.js"
 import {DEFAULT_CUSTOM_HIGHLIGHT_COLOR} from "./constants.js"
 import {saveState} from "./stateManagement.js"
@@ -29,63 +29,52 @@ function handleDocumentClick(e) {
         document.querySelectorAll('.tree-node').forEach(node => {
             node.classList.remove('selected')
         })
-        clearSelectedNodeIDs()
+        clearSelectedNodes()
     }
 }
 
 function handleNodeValueInput() {
-    let treeData = getTreeData()
-    let selectedNodesIDs = getSelectedNodesIDs()
+    let selectedNodes = getSelectedNodes()
 
-    selectedNodesIDs.forEach(selectedNodeID => {
-        const node = findNodeById(treeData, selectedNodeID)
-        if (node) {
-            node.text = this.value
-            const domNode = document.querySelector(`.tree-node[data-id="${selectedNodeID}"]`)
-            if (domNode) {
-                domNode.querySelector('text').textContent = this.value
-            }
-            saveState()
+    selectedNodes.forEach(selectedNode => {
+        selectedNode.text = this.value
+        const domNode = document.querySelector(`.tree-node[data-id="${selectedNode.id}"]`)
+        if (domNode) {
+            domNode.querySelector('text').textContent = this.value
         }
+        saveState()
     })
 }
 
 function handleAddChild() {
-    let treeData = getTreeData()
-    let selectedNodesIDs = getSelectedNodesIDs()
+    let selectedNodes = getSelectedNodes()
 
-    if (selectedNodesIDs.size === 1) {
-        const nodeId = Array.from(selectedNodesIDs)[0]
-        const parentNode = findNodeById(treeData, nodeId)
-        if (parentNode) {
-            let id = generateUniqueId()
-            const newChild = {
-                id: id,
-                text: parentNode.text,
-                x: 0,
-                y: 0,
-                children: [],
-                highlight: null
-            }
-            parentNode.children.push(newChild)
-            updateTreeLayout()
-            showNotification('Child node added', 'success')
+    if (selectedNodes.size === 1) {
+        const parentNode = Array.from(selectedNodes)[0]
+        let id = generateUniqueId()
+        const newChild = {
+            id: id,
+            text: parentNode.text,
+            x: 0,
+            y: 0,
+            children: [],
+            highlight: null
         }
+        parentNode.children.push(newChild)
+        updateTreeLayout()
+        showNotification('Child node added', 'success')
     }
 }
 
 export function handleDeleteNode() {
     let treeData = getTreeData()
-    let selectedNodesIDs = getSelectedNodesIDs()
+    let selectedNodes = getSelectedNodes()
     let count = 0
 
-    selectedNodesIDs.forEach(selectedNodeID => {
-        if (selectedNodeID !== treeData.id) {
-            const node = findNodeById(treeData, selectedNodeID)
-            if (node) {
-                removeNodeFromTree(treeData, selectedNodeID.toString())
-                count++
-            }
+    selectedNodes.forEach(selectedNode => {
+        if (selectedNode.id !== treeData.id) {
+            removeNodeFromTree(treeData, selectedNode.id.toString())
+            count++
         } else {
             showNotification('Cannot delete the root node', 'warning')
         }
@@ -100,28 +89,26 @@ export function handleDeleteNode() {
     }
 
     // Clear selected nodes and hide the node menu
-    selectedNodesIDs.clear()
+    clearSelectedNodes()
     toggleNodeMenu(false)
     updateTreeLayout()
 }
 
 function handleRemoveHighlight() {
-    let treeData = getTreeData()
-    let selectedNodesIDs = getSelectedNodesIDs()
+    let selectedNodes = getSelectedNodes()
     let count = 0
     let treeColor = getTreeColor()
 
-    selectedNodesIDs.forEach(selectedNodeID => {
-        const node = findNodeById(treeData, selectedNodeID)
-        if (node && node.highlight) {
-            node.highlight = null
+    selectedNodes.forEach(selectedNode => {
+        if (selectedNode.highlight) {
+            selectedNode.highlight = null
             const borderColor = getCurrentBorderColor(treeColor)
 
-            const selectedNode = document.querySelector(`.tree-node[data-id="${selectedNodeID}"]`)
-            if (selectedNode) {
-                selectedNode.querySelector('circle').setAttribute('fill', treeColor)
-                selectedNode.querySelector('text').setAttribute('fill', getContrastColor(treeColor))
-                selectedNode.querySelector('circle').setAttribute('stroke', borderColor)
+            const domNode = document.querySelector(`.tree-node[data-id="${selectedNode.id}"]`)
+            if (domNode) {
+                domNode.querySelector('circle').setAttribute('fill', treeColor)
+                domNode.querySelector('text').setAttribute('fill', getContrastColor(treeColor))
+                domNode.querySelector('circle').setAttribute('stroke', borderColor)
             }
             count++
         }
@@ -142,30 +129,22 @@ function handleRemoveHighlight() {
 }
 
 function handleCustomHighlight() {
-    let treeData = getTreeData()
-    let selectedNodesIDs = getSelectedNodesIDs()
+    let selectedNodes = getSelectedNodes()
 
-    selectedNodesIDs.forEach(selectedNodeID => {
-        const node = findNodeById(treeData, selectedNodeID)
-        if (node) {
-            applyHighlight(node, {type: 'custom', color: this.value})
-            saveState()
-        }
+    selectedNodes.forEach(selectedNode => {
+        applyHighlight(selectedNode, {type: 'custom', color: this.value})
+        saveState()
     })
 }
 
 function setupHighlightButtons() {
     document.querySelectorAll('.highlight-btn').forEach((btn, index) => {
         btn.addEventListener('click', () => {
-            let treeData = getTreeData()
-            let selectedNodesIDs = getSelectedNodesIDs()
+            let selectedNodesIDs = getSelectedNodes()
 
-            selectedNodesIDs.forEach(selectedNodeID => {
-                const node = findNodeById(treeData, selectedNodeID)
-                if (node) {
-                    applyHighlight(node, {type: 'global', index: index})
-                    saveState()
-                }
+            selectedNodesIDs.forEach(selectedNode => {
+                applyHighlight(selectedNode, {type: 'global', index: index})
+                saveState()
             })
         })
     })
@@ -197,13 +176,12 @@ export function updateNodeMenu() {
     const removeHighlightBtn = document.getElementById('remove-highlight')
     const deleteNodeBtn = document.getElementById('delete-node')
     let treeData = getTreeData()
-    let selectedNodesIDs = getSelectedNodesIDs()
+    let selectedNodes = getSelectedNodes()
 
-    selectedCount.textContent = `${selectedNodesIDs.size} selected`
+    selectedCount.textContent = `${selectedNodes.size} selected`
 
-    if (selectedNodesIDs.size === 1) {
-        const nodeID = Array.from(selectedNodesIDs)[0]
-        const node = findNodeById(treeData, nodeID)
+    if (selectedNodes.size === 1) {
+        const node = Array.from(selectedNodes)[0]
         nodeValueInput.previousElementSibling.textContent = 'Node Value:'
         nodeValueInput.value = node.text
         nodeValueInput.placeholder = 'Enter node value'
@@ -240,8 +218,8 @@ export function updateNodeMenu() {
         deleteNodeBtn.textContent = 'Delete Nodes'
 
         // Check if any selected node has a highlight
-        const anyHighlight = Array.from(selectedNodesIDs).some(nodeID => {
-            return findNodeById(treeData, nodeID).highlight
+        const anyHighlight = Array.from(selectedNodes).some(node => {
+            return findNodeById(treeData, node.id).highlight
         })
         if (anyHighlight) {
             removeHighlightBtn.classList.add('active')
@@ -252,7 +230,7 @@ export function updateNodeMenu() {
         }
     }
 
-    toggleNodeMenu(selectedNodesIDs.size > 0)
+    toggleNodeMenu(selectedNodes.size > 0)
 }
 
 export function toggleNodeMenu(show) {

@@ -1,16 +1,18 @@
 import {
-    findMiddleChildNodeID,
-    findNextSiblingID,
-    findParentNodeID,
-    findPreviousSiblingID,
+    findMiddleChildNode,
+    findNextSibling,
+    findParentNode,
+    findPreviousSibling,
     updateAllNodesHighlightColor,
     updateSVGViewBox,
     updateTreeLayout
 } from "./treeOperations.js"
 import {
-    addSelectedNodeID,
+    addSelectedNode,
+    clearSelectedNodes,
     getHighlightColors,
-    getSelectedNodesIDs,
+    getSelectedNodes,
+    getSelectedNodesSize,
     getTreeData,
     setBorderColor,
     setContainerBackgroundColor,
@@ -234,100 +236,99 @@ function setupImportExportEventListeners() {
 
 function setupKeyboardShortcuts() {
     document.addEventListener('keydown', function (event) {
-        let selectedNodesIDs = getSelectedNodesIDs()
-        let treeData = getTreeData()
+        let treeData = getTreeData();
 
         if (event.key === 'Escape') {
             if (document.activeElement.id === 'node-value') {
-                document.activeElement.blur()
+                document.activeElement.blur();
             } else if (document.getElementById('node-menu').classList.contains('visible')) {
-                event.preventDefault()
-                toggleNodeMenu(false)
-                selectedNodesIDs.clear()
-                updateNodeSelection()
+                event.preventDefault();
+                toggleNodeMenu(false);
+                clearSelectedNodes();
+                updateNodeSelection();
             }
         }
 
         if (event.key === 'Enter') {
             if (document.activeElement.id === 'node-value') {
-                event.preventDefault()
-                document.activeElement.blur()
-            } else if (document.getElementById('node-menu').classList.contains('visible') && selectedNodesIDs.size === 1) {
-                event.preventDefault()
-                document.getElementById('add-child').click()
+                event.preventDefault();
+                document.activeElement.blur();
+            } else if (document.getElementById('node-menu').classList.contains('visible') && getSelectedNodesSize() === 1) {
+                event.preventDefault();
+                document.getElementById('add-child').click();
             }
         }
 
         if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
             // Delete selected node(s) on backspace or delete key press
-            if (selectedNodesIDs.size > 0 && (event.key === 'Backspace' || event.key === 'Delete')) {
-                event.preventDefault() // Prevent the browser's back action on backspace
-                handleDeleteNode()
+            if (getSelectedNodesSize() > 0 && (event.key === 'Backspace' || event.key === 'Delete')) {
+                event.preventDefault(); // Prevent the browser's back action on backspace
+                handleDeleteNode();
             }
 
             // Move the selected node with arrow keys
-            if (selectedNodesIDs.size === 1) {
-                const currentNodeId = Array.from(selectedNodesIDs)[0]
-                let newSelectedNodeId = null
+            if (getSelectedNodesSize() === 1) {
+                const currentNode = Array.from(getSelectedNodes())[0]
+                let newSelectedNode = null;
 
                 switch (event.key) {
                     case 'ArrowUp':
-                        event.preventDefault() // Prevent scrolling
-                        newSelectedNodeId = findParentNodeID(currentNodeId)
-                        break
+                        event.preventDefault(); // Prevent scrolling
+                        newSelectedNode = findParentNode(currentNode);
+                        break;
                     case 'ArrowDown':
-                        event.preventDefault() // Prevent scrolling
-                        newSelectedNodeId = findMiddleChildNodeID(currentNodeId)
-                        break
+                        event.preventDefault(); // Prevent scrolling
+                        newSelectedNode = findMiddleChildNode(currentNode);
+                        break;
                     case 'ArrowLeft':
-                        event.preventDefault() // Prevent scrolling
-                        newSelectedNodeId = findPreviousSiblingID(currentNodeId)
-                        break
+                        event.preventDefault(); // Prevent scrolling
+                        newSelectedNode = findPreviousSibling(currentNode);
+                        break;
                     case 'ArrowRight':
-                        event.preventDefault() // Prevent scrolling
-                        newSelectedNodeId = findNextSiblingID(currentNodeId)
-                        break
+                        event.preventDefault(); // Prevent scrolling
+                        newSelectedNode = findNextSibling(currentNode);
+                        break;
                 }
 
-                if (newSelectedNodeId !== null) {
-                    selectedNodesIDs.clear()
-                    selectedNodesIDs.add(newSelectedNodeId)
-                    updateNodeSelection()
-                    updateNodeMenu()
+                if (newSelectedNode !== null) {
+                    clearSelectedNodes();
+                    addSelectedNode(newSelectedNode);
+                    updateNodeSelection();
+                    updateNodeMenu();
                 }
             }
 
             // Focus on the node value input on 'e' key press
             if (document.getElementById('node-menu').classList.contains('visible')) {
                 if (event.key === 'e') {
-                    event.preventDefault()
-                    document.getElementById('node-value').focus()
-                    document.getElementById('node-value').select()
+                    event.preventDefault();
+                    document.getElementById('node-value').focus();
+                    document.getElementById('node-value').select();
                 }
             }
 
             // If no node is selected, select the root node on 'r' key press
-            if (selectedNodesIDs.size === 0 && event.key === 'r') {
-                event.preventDefault()
-                selectedNodesIDs.add(treeData.id)
-                updateNodeSelection()
-                updateNodeMenu()
+            if (getSelectedNodesSize() === 0 && event.key === 'r') {
+                event.preventDefault();
+                addSelectedNode(treeData);
+                updateNodeSelection();
+                updateNodeMenu();
             }
 
             // If control + a, select all nodes
             if (event.ctrlKey && event.key === 'a') {
-                event.preventDefault()
-                selectedNodesIDs.clear()
-                selectAllNodes(treeData)
-                updateNodeSelection()
-                updateNodeMenu()
+                event.preventDefault();
+                clearSelectedNodes();
+                selectAllNodes(treeData);
+                updateNodeSelection();
+                updateNodeMenu();
             }
         }
-    })
+    });
 }
 
 function selectAllNodes(node) {
-    addSelectedNodeID(node.id)
+    addSelectedNode(node)
     node.children.forEach(child => selectAllNodes(child))
 }
 
@@ -338,9 +339,9 @@ function updateNodeSelection() {
     })
 
     // Select the new node visually
-    let selectedNodesIDs = getSelectedNodesIDs()
-    selectedNodesIDs.forEach(id => {
-        const nodeElement = document.querySelector(`.tree-node[data-id="${id}"]`)
+    let selectedNodes = getSelectedNodes()
+    selectedNodes.forEach(node => {
+        const nodeElement = document.querySelector(`.tree-node[data-id="${node.id}"]`)
         if (nodeElement) {
             nodeElement.classList.add('selected')
         }
@@ -351,15 +352,15 @@ function setupResetButtons() {
     const resetColorsBtn = document.getElementById('reset-colors')
     const resetTreeBtn = document.getElementById('reset-tree')
     const resetAllBtn = document.getElementById('reset-all')
-    const lineColorPicker = document.getElementById('line-color')
     const exportFormat = document.getElementById('export-format')
     const scaleFactor = document.getElementById('scale-factor')
     const borderThickness = document.getElementById('border-thickness')
     const lineThickness = document.getElementById('line-thickness')
+    const noLineCheckbox = document.getElementById('no-line')
 
     // Reset Color Options:
     resetColorsBtn.addEventListener('click', () => {
-        resetColors(lineColorPicker);
+        resetColors();
         saveState()
         showNotification('Colors reset to default', 'success')
     })
@@ -377,8 +378,8 @@ function setupResetButtons() {
         scaleFactor.value = 2
         borderThickness.value = 3
         lineThickness.value = 3
-        resetTreeStructure()
-        resetColors(lineColorPicker)
+        noLineCheckbox.checked = false
+        resetColors()
         showNotification('All settings reset to default', 'success')
     })
 }
