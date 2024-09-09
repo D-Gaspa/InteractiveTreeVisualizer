@@ -12,7 +12,7 @@ let highlightColors = DEFAULT_HIGHLIGHT_COLORS
 let containerBackgroundColor = DEFAULT_CONTAINER_BACKGROUND_COLOR;
 let treeData = null;
 let nodeIDCounter = 0;
-let selectedNodesIDs = new Set()
+let selectedNodes = new Set()
 
 export function setTreeColor(color) {
     treeColor = color
@@ -70,14 +70,18 @@ export function getAndIncrementNodeIDCounter() {
     return nodeIDCounter++
 }
 
-export function getSelectedNodesIDs() {
-    return selectedNodesIDs
+export function getSelectedNodes() {
+    return selectedNodes
 }
 
-export function addSelectedNodeID(id) {
-    selectedNodesIDs.add(id)
+export function addSelectedNode(node) {
+    selectedNodes.add(node)
 }
 
-export function clearSelectedNodeIDs() {
-    selectedNodesIDs.clear()
+export function clearSelectedNodes() {
+    selectedNodes.clear()
+}
+
+export function getSelectedNodesSize() {
+    return selectedNodes.size
 }

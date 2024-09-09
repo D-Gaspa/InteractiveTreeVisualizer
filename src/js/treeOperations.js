@@ -2,9 +2,11 @@ import {showNotification} from "./uiControls.js"
 import {DEFAULT_TREE_DATA} from "./constants.js"
 import {getContrastColor, getCurrentBorderColor, getCurrentLineColor} from "./utils.js"
 import {
+    addSelectedNode,
+    clearSelectedNodes,
     getAndIncrementNodeIDCounter,
     getHighlightColors,
-    getSelectedNodesIDs,
+    getSelectedNodes,
     getTreeColor,
     getTreeData,
     setNodeIDCounter,
@@ -44,11 +46,11 @@ export function updateTreeLayout() {
 }
 
 function reapplySelection() {
-    let selectedNodesIDs = getSelectedNodesIDs()
-    if (selectedNodesIDs.size > 0) {
-        selectedNodesIDs.forEach(selectedNodeID => {
+    let selectedNodes = getSelectedNodes()
+    if (selectedNodes.size > 0) {
+        selectedNodes.forEach(selectedNode => {
             let treeData = getTreeData()
-            let node = findNodeById(treeData, selectedNodeID)
+            let node = findNodeById(treeData, selectedNode.id)
             if (node) {
                 selectNode(node, true)
             }
@@ -194,7 +196,8 @@ function groupNodesByParentAndSort(nodes) {
 
     // Group nodes by their parent's ID
     nodes.forEach(node => {
-        let parentID = findParentNodeID(node.id)
+        let parent = findParentNode(node)
+        let parentID = parent ? parent.id : treeData.id
         if (!nodesByParent[parentID]) {
             nodesByParent[parentID] = []
             parents.add(parentID)
@@ -475,17 +478,15 @@ function renderNodeElement(node) {
 }
 
 function selectNode(node, multiSelect = false) {
-    let selectedNodesIDs = getSelectedNodesIDs()
-
     if (!multiSelect) {
         document.querySelectorAll('.tree-node').forEach(node => {
             node.classList.remove('selected')
         })
-        selectedNodesIDs.clear()
+        clearSelectedNodes()
     }
 
     // Add the clicked node to the selected nodes
-    selectedNodesIDs.add(node.id)
+    addSelectedNode(node)
 
     // Add 'selected' class to the clicked node
     const nodeGroup = document.querySelector(`.tree-node[data-id="${node.id}"]`)
@@ -539,11 +540,11 @@ export function generateUniqueId() {
     return newId
 }
 
-export function findParentNodeID(nodeId) {
-    function search(node) {
-        for (let child of node.children) {
-            if (child.id === nodeId) {
-                return node.id
+export function findParentNode(node) {
+    function search(searchNode) {
+        for (let child of searchNode.children) {
+            if (child.id === node.id) {
+                return searchNode
             }
             const result = search(child)
             if (result) return result
@@ -555,11 +556,10 @@ export function findParentNodeID(nodeId) {
     return search(treeData)
 }
 
-export function findMiddleChildNodeID(nodeId) {
-    const node = findNodeById(getTreeData(), nodeId)
+export function findMiddleChildNode(node) {
     if (node.children.length === 0) {
         // If no children, find the closest node in the next depth
-        const currentDepth = findNodeDepth(nodeId)
+        const currentDepth = findNodeDepth(node)
         const nextDepth = currentDepth + 1
 
         if (nodesByDepth[nextDepth]) {
@@ -569,38 +569,38 @@ export function findMiddleChildNodeID(nodeId) {
     }
 
     const middleIndex = Math.floor((node.children.length - 1) / 2)
-    return node.children[middleIndex].id
+    return node.children[middleIndex]
 }
 
-export function findPreviousSiblingID(nodeId) {
-    const currentDepth = findNodeDepth(nodeId)
+export function findPreviousSibling(node) {
+    const currentDepth = findNodeDepth(node)
     const nodesAtDepth = nodesByDepth[currentDepth]
-    const currentIndex = nodesAtDepth.findIndex(node => node.id === nodeId)
+    const currentIndex = nodesAtDepth.findIndex(n => n.id === node.id)
 
     if (currentIndex > 0) {
-        return nodesAtDepth[currentIndex - 1].id
+        return nodesAtDepth[currentIndex - 1]
     }
 
     // If no previous sibling, find the closest node to the left
     return findClosestNodeInDepth(nodesAtDepth[currentIndex].x, currentDepth, 'left')
 }
 
-export function findNextSiblingID(nodeId) {
-    const currentDepth = findNodeDepth(nodeId)
+export function findNextSibling(node) {
+    const currentDepth = findNodeDepth(node)
     const nodesAtDepth = nodesByDepth[currentDepth]
-    const currentIndex = nodesAtDepth.findIndex(node => node.id === nodeId)
+    const currentIndex = nodesAtDepth.findIndex(n => n.id === node.id)
 
     if (currentIndex < nodesAtDepth.length - 1) {
-        return nodesAtDepth[currentIndex + 1].id
+        return nodesAtDepth[currentIndex + 1]
     }
 
     // If no next sibling, find the closest node to the right
     return findClosestNodeInDepth(nodesAtDepth[currentIndex].x, currentDepth, 'right')
 }
 
-function findNodeDepth(nodeId) {
+function findNodeDepth(node) {
     for (let depth in nodesByDepth) {
-        if (nodesByDepth[depth].some(node => node.id === nodeId)) {
+        if (nodesByDepth[depth].includes(node)) {
             return parseInt(depth)
         }
     }
